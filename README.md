@@ -12,5 +12,7 @@
 	<p>4.线程池管理</p>
 	<p></p>
 	<p>构建请使用CMake</p>
+	<p></P>
+	<a href="https://github.com/YYYLIN/MagicThread/blob/master/LICENSE">使用BSD许可证</a>
   </body>
 </html>
