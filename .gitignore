@@ -1,0 +1,51 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.tlog
+*.ilk
+*.pdb
+*.idb
+*.sdf
+*.log
+*.exp
+*.opendb
+*.db
+*.vs
+*.enc
+*.suo
+*.opensdf
+clear.bat
+Install/*
+Media/*
+Build/*
+!Build/cmake
+[Dd]ebug/*
+[Rr]elease/*
+[Bb]in/*
+[Ll]ib/*
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+!*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+!*.lib
+
+# Executables
+*.exe
+*.out
+*.app
