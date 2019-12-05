@@ -5,6 +5,7 @@ project (MagicThread)
 
 # Ìí¼Ó Magic_Engine ×ÓÄ¿Â¼
 add_subdirectory(MagicThread)
+add_subdirectory(Demo1)
 
 set(CMAKE_BUILD_TYPE "Debug")
 
