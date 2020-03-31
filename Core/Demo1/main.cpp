@@ -3,6 +3,7 @@
 */
 
 #include "Magic_Thread.h"
+#include "string"
 using namespace Magic::Management;
 
 int main() {
