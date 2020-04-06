@@ -74,7 +74,7 @@
 */
 #define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		a = CreateSemaphore(b,c,d,e)
 #define Magic_Thread_SEM_Wait(a)					WaitForSingleObject(a, INFINITE)
-#define Magic_Thread_SEM_Wait_Time(a,t)				WaitForSingleObject(a, t);
+#define Magic_Thread_SEM_Wait_Time(a,t)				do{WaitForSingleObject(a, t);}while(0)
 #define Magic_Thread_SEM_Post(a)					ReleaseSemaphore(a, 1, NULL)
 #define Magic_Thread_SEM_destroy(a)					CloseHandle(a)
 #define Magic_Thread_Mutex_Lock(a)					EnterCriticalSection(a)
@@ -119,6 +119,20 @@ typedef unsigned int								Magic_SOCKSET;
 #define Magic_Thread_Exit(a)						pthread_cancel(a)
 #define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		(sem_init(&a,f,g) == 0)
 #define Magic_Thread_SEM_Wait(a)					sem_wait(&a)
+#define Magic_Thread_SEM_Wait_Time(a,t)				do{												\
+														struct timespec ts;							\
+														clock_gettime(CLOCK_REALTIME, &ts);			\
+														unsigned long msecs = t;					\
+														unsigned long secs = msecs/1000;						\
+														unsigned long add = 0;								\
+														msecs = (msecs % 1000) * 1000 * 1000 + ts.tv_nsec;	\
+														add = msecs / (1000 * 1000 * 1000);			\
+														ts.tv_sec += (add + secs);					\
+														ts.tv_nsec = msecs % (1000 * 1000 * 1000);  \
+														sem_timedwait(&a, &ts);						\
+													}while(0)
+
+
 #define Magic_Thread_SEM_Post(a)					sem_post(&a)
 #define Magic_Thread_SEM_destroy					sem_destroy(&a)
 #define Magic_Thread_Mutex_Lock(a)					pthread_mutex_lock(a)

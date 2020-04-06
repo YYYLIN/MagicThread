@@ -48,6 +48,7 @@ namespace Magic
 			m_ThreadTypeMode = THREAD_RUN_ONCE;
 			m_ThreadRunState = THREAD_STATE_TIMEOUT;
 			m_ThreadMessageMode = THREAD_MESSAGE_NO_WAIT;
+			m_ThreadWaitTime = MAGIC_WAIT_INFINITE;
 		}
 
 		ThreadObject::ThreadObject(ThreadTypeMode _ThreadTypeMode, ThreadRunState _ThreadRunState, const std::string& _name, ThreadMessageMode _ThreadMessageMode)
@@ -55,6 +56,7 @@ namespace Magic
 			m_ThreadTypeMode = _ThreadTypeMode;
 			m_ThreadRunState = _ThreadRunState;
 			m_ThreadMessageMode = _ThreadMessageMode;
+			m_ThreadWaitTime = MAGIC_WAIT_INFINITE;
 			m_Name = _name;
 		}
 
@@ -107,12 +109,12 @@ namespace Magic
 			return m_S_pSystemThread;
 		}
 
-		bool SystemThread::Initialize()
+		bool SystemThread::Initialize(ThreadMessageMode threadmessagemode)
 		{
 			Magic_Thread_Mutex_Init(&m_Mutex);
 			Magic_Thread_Mutex_Init(&m_MutexPoolObject);
 
-			m_S_T_pThreadObject = (ThreadObject*)Create(MAGIC_MAIN_THREAD_NAME, THREAD_LOOP_RUN, THREAD_MESSAGE_NO_WAIT, false);
+			m_S_T_pThreadObject = (ThreadObject*)Create(MAGIC_MAIN_THREAD_NAME, THREAD_LOOP_RUN, threadmessagemode, false);
 			if (!m_S_T_pThreadObject)
 				return false;
 
@@ -163,10 +165,10 @@ namespace Magic
 					THREAD_OBJECT _THREAD_OBJECT = Create(_text, THREAD_LOOP_RUN, THREAD_MESSAGE_WAIT, true);
 					SendMessageTo(_THREAD_OBJECT, 0, 0,
 						[_THREAD_POOL_OBJECT](MESSAGE_TYPE, MESSAGE)
-					{
-						m_S_T_pThreadPoolObject = (ThreadPoolObject*)_THREAD_POOL_OBJECT;
-						m_S_T_pThreadObject->m_ThreadMessageMode = THREAD_MESSAGE_NO_WAIT;
-					});
+						{
+							m_S_T_pThreadPoolObject = (ThreadPoolObject*)_THREAD_POOL_OBJECT;
+							m_S_T_pThreadObject->m_ThreadMessageMode = THREAD_MESSAGE_NO_WAIT;
+						});
 
 					MonitorThread(_THREAD_OBJECT, BindClassFunctionObject(&ThreadPoolObject::Updata, &_findTO->second));
 					if (_THREAD_OBJECT)
@@ -215,12 +217,20 @@ namespace Magic
 			Magic_Thread_Mutex_unLock(&m_MutexPoolObject);
 		}
 
+		bool SystemThread::SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time) {
+			return this->SendMessageTo(_THREAD_OBJECT, 0, 0,
+				[time, _THREAD_OBJECT](MM_MESS) {
+					ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
+					_pThreadObject->m_ThreadWaitTime = time;
+				});
+		}
+
 		bool SystemThread::MonitorThread(THREAD_OBJECT _THREAD_OBJECT, const Callback_Void& _CallBack) {
 			Callback_Void _BufferCallback = _CallBack;
 
 			return SendMessageTo(_THREAD_OBJECT, 0, 0, [_BufferCallback](MESSAGE_TYPE _MessageType, MESSAGE _Message) {
 				m_S_T_pThreadObject->m_vec_Callback.push_back(_BufferCallback);
-			});
+				});
 		}
 
 		bool SystemThread::MonitorThreadPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, const Callback_Void& _CallBack) {
@@ -229,7 +239,7 @@ namespace Magic
 
 			return SendMessageToPool(_THREAD_POOL_OBJECT, 0, 0, [_BufferCallback](MESSAGE_TYPE _MessageType, MESSAGE _Message) {
 				m_S_T_pThreadObject->m_vec_Callback.push_back(_BufferCallback);
-			});
+				});
 		}
 
 		bool SystemThread::MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)
@@ -242,7 +252,7 @@ namespace Magic
 					_MointorVec->second.push_back(_BufferCallback);
 				else
 					m_S_T_pThreadObject->m_umap_MonitorFunction.insert(std::make_pair(_MessageType, std::vector<Callback_Message>({ _BufferCallback })));
-			});
+				});
 		}
 
 		bool SystemThread::MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)
@@ -255,7 +265,7 @@ namespace Magic
 					_MointorVec->second.push_back(_BufferCallback);
 				else
 					m_S_T_pThreadObject->m_umap_MonitorFunction.insert(std::make_pair(_MessageType, std::vector<Callback_Message>({ _BufferCallback })));
-			});
+				});
 		}
 
 		bool SystemThread::SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
@@ -459,7 +469,7 @@ namespace Magic
 			do
 			{
 				if (_pThreadObject->m_ThreadMessageMode == THREAD_MESSAGE_WAIT)
-					Magic_Thread_SEM_Wait(_pThreadObject->m_Queue_SEM);
+					Magic_Thread_SEM_Wait_Time(_pThreadObject->m_Queue_SEM, _pThreadObject->m_ThreadWaitTime);
 				Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
 				_Number = _pThreadObject->m_queue_Message.size();
 				if (_Number)

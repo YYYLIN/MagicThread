@@ -53,6 +53,8 @@
 
 #define MAGIC_MAIN_THREAD_NAME			"MAIN_THREAD"
 
+#define MAGIC_WAIT_INFINITE				0xFFFFFFFF
+
 #define BindClassFunctionToMessage(F) std::bind(F, this, std::placeholders::_1, std::placeholders::_2)
 #define BindClassFunctionToMessageObject(F,O) std::bind(F, O, std::placeholders::_1, std::placeholders::_2)
 #define BindClassFunction(F) std::bind(F, this)
@@ -92,7 +94,7 @@ namespace Magic
 		*返回值：
 		*	bool = true 成功 | false 失败
 		*/
-		DLL_MAGIC_THREAD_OUTPUT_INPUT bool CreateThreadManagement();
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool CreateThreadManagement(ThreadMessageMode threadmessagemode = THREAD_MESSAGE_NO_WAIT);
 
 		/*
 		*功能：
@@ -191,6 +193,19 @@ namespace Magic
 
 		/*
 		*功能：
+		*	设置等待线程的最长等待时长
+		*参数：
+		*	_THREAD_OBJECT = 线程对象
+		*	time = 等待时长(毫秒单位)
+		*返回值：
+		*	true 成功 false失败
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time);
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SetWaitTime(const char* _name, unsigned long time);
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SetWaitTime(unsigned long time);
+
+		/*
+		*功能：
 		*	监听线程
 		*参数：
 		*	_THREAD_OBJECT = 线程对象
@@ -247,13 +262,13 @@ namespace Magic
 		*	[IN]_MessageType = 消息类型
 		*	[IN]_Message = 消息并且会作为函数参数传入
 		*	[IN]_CallBack = 在指定线程延迟运行此函数
-		*	[IN]_Synch = 必须等待消息传递到指定线程并且_CallBack和监听函数处理完成再退出。		 
+		*	[IN]_Synch = 必须等待消息传递到指定线程并且_CallBack和监听函数处理完成再退出。
 		*警告：
 		*	 如果消息类型为0着不传递消息只执行函数
 		*返回值：
 		*	bool = true 发送成功 | false发送失败
 		*/
-		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message,const Callback_Message& _CallBack = nullptr, bool _Synch = false);
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack = nullptr, bool _Synch = false);
 
 		/*
 		*功能：

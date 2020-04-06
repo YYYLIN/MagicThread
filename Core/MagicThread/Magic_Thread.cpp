@@ -32,14 +32,14 @@ namespace Magic
 {
 	namespace Management
 	{
-		bool CreateThreadManagement()
+		bool CreateThreadManagement(ThreadMessageMode threadmessagemode)
 		{
 			if (!SystemThread::Instance())
 			{
 				//创建线程管理系统
 				Magic::Management::SystemThread* _pSystemThread = 0;
 				_pSystemThread = new Magic::Management::SystemThread;
-				bool result = _pSystemThread->Initialize();
+				bool result = _pSystemThread->Initialize(threadmessagemode);
 				if (!result)
 					return 0;
 
@@ -95,6 +95,18 @@ namespace Magic
 		void ShutdownThreadObject()
 		{
 			SystemThread::Instance()->Shutdown(SystemThread::Instance()->GetNowTHREAD_OBJECT());
+		}
+
+		bool SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time) {
+			return SystemThread::Instance()->SetWaitTime(_THREAD_OBJECT, time);
+		}
+
+		bool SetWaitTime(const char* _name, unsigned long time) {
+			return SystemThread::Instance()->SetWaitTime(SystemThread::Instance()->GetTHREAD_OBJECT(_name), time);
+		}
+
+		bool SetWaitTime(unsigned long time) {
+			return SystemThread::Instance()->SetWaitTime(SystemThread::Instance()->GetNowTHREAD_OBJECT(), time);
 		}
 
 		bool MonitorThread(THREAD_OBJECT _THREAD_OBJECT, const Callback_Void& _CallBack) {

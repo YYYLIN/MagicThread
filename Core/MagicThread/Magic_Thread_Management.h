@@ -68,6 +68,7 @@ namespace Magic
 			ThreadTypeMode m_ThreadTypeMode;
 			ThreadMessageMode m_ThreadMessageMode;
 			ThreadRunState m_ThreadRunState;
+			unsigned long m_ThreadWaitTime;
 
 			std::queue<Message> m_queue_Message;
 			Magic_SEM m_Queue_SEM;
@@ -80,7 +81,7 @@ namespace Magic
 			ThreadObject(ThreadTypeMode _ThreadTypeMode, ThreadRunState _ThreadRunState, const std::string& _name, ThreadMessageMode _ThreadMessageMode);
 		};
 
-		class ThreadPoolObject 
+		class ThreadPoolObject
 		{
 		public:
 			void Updata();
@@ -104,13 +105,15 @@ namespace Magic
 
 			static SystemThread* Instance();
 
-			bool Initialize();
+			bool Initialize(ThreadMessageMode threadmessagemode);
 
 			THREAD_OBJECT Create(const char* _name, ThreadTypeMode _ThreadTypeMode, ThreadMessageMode _ThreadMessageMode, bool _IsNewThread);
 
 			THREAD_POOL_OBJECT CreatePool(const char* _name, unsigned int _ThreadNumber);
 
 			void ShutdownPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT);
+
+			bool SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time);
 
 			bool MonitorThread(THREAD_OBJECT _THREAD_OBJECT, const Callback_Void& _CallBack);
 
