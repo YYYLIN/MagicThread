@@ -102,6 +102,9 @@ namespace Magic
 			m_S_pSystemThread = 0;
 			Magic_Thread_Mutex_Destroy(&m_MutexPoolObject);
 			Magic_Thread_Mutex_Destroy(&m_Mutex);
+
+			//发送主线程退出消息
+			MessageHandle(m_S_T_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)m_S_T_pThreadObject);
 		}
 
 		SystemThread* SystemThread::Instance()
