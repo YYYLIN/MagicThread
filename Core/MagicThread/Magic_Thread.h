@@ -62,6 +62,8 @@
 
 #define MM_MESS		Magic::Management::MESSAGE_TYPE _MessageType, Magic::Management::MESSAGE _Message
 
+#define MESSAGE_THREAD_CLOSE			0xFFFFFFFF
+
 namespace Magic
 {
 	namespace Management

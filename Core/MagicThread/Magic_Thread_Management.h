@@ -166,6 +166,8 @@ namespace Magic
 		};
 
 		int ThreadMessageHandle(ThreadObject* _pThreadObject);
+
+		void MessageHandle(ThreadObject* _pThreadObject, const unsigned int& _MessageType, const long long& _Message);
 	}
 }
 

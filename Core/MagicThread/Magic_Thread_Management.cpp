@@ -457,6 +457,8 @@ namespace Magic
 
 			} while (_pThreadObject->m_ThreadTypeMode == THREAD_LOOP_RUN && _pThreadObject->m_ThreadRunState != THREAD_STOP);
 
+			MessageHandle(_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)_pThreadObject);
+
 			_pThreadObject->m_ThreadRunState = THREAD_STOP;
 			return arcoss_return(0);
 		}
@@ -485,12 +487,7 @@ namespace Magic
 						_Message.m_CallBack(_Message.m_MessageType, _Message.m_Message);
 					}
 
-					auto _MonitorVec = _pThreadObject->m_umap_MonitorFunction.find(_Message.m_MessageType);
-					if (_MonitorVec != _pThreadObject->m_umap_MonitorFunction.end()) {
-						for (auto& _allback : _MonitorVec->second) {
-							_allback(_Message.m_MessageType, _Message.m_Message);
-						}
-					}
+					MessageHandle(_pThreadObject, _Message.m_MessageType, _Message.m_Message);
 
 					if (_Message.m_pThreadObject) {
 						Magic_Thread_SEM_Post(_Message.m_pThreadObject->m_Synch_SEM);
@@ -504,6 +501,15 @@ namespace Magic
 			}
 
 			return 0;
+		}
+
+		void MessageHandle(ThreadObject* _pThreadObject, const unsigned int& _MessageType, const long long& _Message) {
+			auto _MonitorVec = _pThreadObject->m_umap_MonitorFunction.find(_MessageType);
+			if (_MonitorVec != _pThreadObject->m_umap_MonitorFunction.end()) {
+				for (auto& _allback : _MonitorVec->second) {
+					_allback(_MessageType, _Message);
+				}
+			}
 		}
 	}
 }
