@@ -146,7 +146,8 @@ namespace Magic
 			void Shutdown(THREAD_OBJECT _THREAD_OBJECT);
 
 		protected:
-			void UpdataStop(MAP_SRTING_THREADOBJECT::iterator& _auto);
+			Callback_Void UpdataStop(MAP_SRTING_THREADOBJECT::iterator& _auto);
+			void IsDeleteThread();
 		public:
 			void Updata();
 		private:
