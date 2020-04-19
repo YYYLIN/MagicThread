@@ -503,6 +503,7 @@ namespace Magic
 				Magic_Thread_SEM_Wait_Time(_pThreadObject->m_Queue_SEM, _pThreadObject->m_ThreadWaitTime);
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
 			_pThreadObject->m_Last_queue_Message = _pThreadObject->m_queue_Message;
+			_pThreadObject->m_queue_Message.clear();
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
 			//处理上一个循环收集到的消息
 			for (auto& a : _pThreadObject->m_Last_queue_Message) {
@@ -516,6 +517,7 @@ namespace Magic
 					Magic_Thread_SEM_Post(a.m_pThreadObject->m_Synch_SEM);
 				}
 			}
+			_pThreadObject->m_Last_queue_Message.clear();
 		}
 
 		void ThreadHandle(ThreadObject* _pThreadObject) {
