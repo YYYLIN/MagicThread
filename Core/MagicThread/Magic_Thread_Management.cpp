@@ -290,7 +290,7 @@ namespace Magic
 			}
 
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
-			_pThreadObject->m_queue_Message.push(Message(_MessageType, _Message, _CallBack, _pSendThreadObject));
+			_pThreadObject->m_queue_Message.push_back(Message(_MessageType, _Message, _CallBack, _pSendThreadObject));
 			_ThreadMessageMode = _pThreadObject->m_ThreadMessageMode == THREAD_MESSAGE_WAIT;
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
 			if (_ThreadMessageMode)
@@ -471,6 +471,7 @@ namespace Magic
 			{
 				IsDeleteThread();
 				ThreadMessageHandle(m_S_T_pThreadObject);
+				ThreadHandle(m_S_T_pThreadObject);
 			} while (m_S_T_pThreadObject->m_ThreadRunState != THREAD_STOP);
 		}
 
@@ -487,6 +488,7 @@ namespace Magic
 			do
 			{
 				ThreadMessageHandle(_pThreadObject);
+				ThreadHandle(_pThreadObject);
 			} while (_pThreadObject->m_ThreadRunState != THREAD_STOP);
 
 			MessageHandle(_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)_pThreadObject);
@@ -495,44 +497,31 @@ namespace Magic
 			return arcoss_return(0);
 		}
 
-		int ThreadMessageHandle(ThreadObject* _pThreadObject)
+		void ThreadMessageHandle(ThreadObject* _pThreadObject)
 		{
-			Message _Message;
-			size_t _Number, _HandleMaxNumber = 0;
-
-			do
-			{
-				if (_pThreadObject->m_ThreadMessageMode == THREAD_MESSAGE_WAIT)
-					Magic_Thread_SEM_Wait_Time(_pThreadObject->m_Queue_SEM, _pThreadObject->m_ThreadWaitTime);
-				Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
-				_Number = _pThreadObject->m_queue_Message.size();
-				if (_Number)
-				{
-					_Message = _pThreadObject->m_queue_Message.front();
-					_pThreadObject->m_queue_Message.pop();
+			if (_pThreadObject->m_ThreadMessageMode == THREAD_MESSAGE_WAIT)
+				Magic_Thread_SEM_Wait_Time(_pThreadObject->m_Queue_SEM, _pThreadObject->m_ThreadWaitTime);
+			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
+			_pThreadObject->m_Last_queue_Message = _pThreadObject->m_queue_Message;
+			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
+			//处理上一个循环收集到的消息
+			for (auto& a : _pThreadObject->m_Last_queue_Message) {
+				if (a.m_CallBack) {
+					a.m_CallBack(a.m_MessageType, a.m_Message);
 				}
-				Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
 
-				if (_Number)
-				{
-					if (_Message.m_CallBack) {
-						_Message.m_CallBack(_Message.m_MessageType, _Message.m_Message);
-					}
+				MessageHandle(_pThreadObject, a.m_MessageType, a.m_Message);
 
-					MessageHandle(_pThreadObject, _Message.m_MessageType, _Message.m_Message);
-
-					if (_Message.m_pThreadObject) {
-						Magic_Thread_SEM_Post(_Message.m_pThreadObject->m_Synch_SEM);
-					}
+				if (a.m_pThreadObject) {
+					Magic_Thread_SEM_Post(a.m_pThreadObject->m_Synch_SEM);
 				}
-				//当消息处理完时退出，或者当处理数量大于100时退出
-			} while (_Number && _HandleMaxNumber++ < 100);
+			}
+		}
 
+		void ThreadHandle(ThreadObject* _pThreadObject) {
 			for (auto& _allback : _pThreadObject->m_vec_Callback) {
 				_allback();
 			}
-
-			return 0;
 		}
 
 		void MessageHandle(ThreadObject* _pThreadObject, const unsigned int& _MessageType, const long long& _Message) {

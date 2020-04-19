@@ -70,7 +70,8 @@ namespace Magic
 			ThreadRunState m_ThreadRunState;
 			unsigned long m_ThreadWaitTime;
 
-			std::queue<Message> m_queue_Message;
+			std::vector<Message> m_queue_Message;
+			std::vector<Message> m_Last_queue_Message;
 			Magic_SEM m_Queue_SEM;
 			Magic_SEM m_Synch_SEM;
 
@@ -166,7 +167,8 @@ namespace Magic
 			static SystemThread* m_S_pSystemThread;
 		};
 
-		int ThreadMessageHandle(ThreadObject* _pThreadObject);
+		void ThreadMessageHandle(ThreadObject* _pThreadObject);
+		void ThreadHandle(ThreadObject* _pThreadObject);
 
 		void MessageHandle(ThreadObject* _pThreadObject, const unsigned int& _MessageType, const long long& _Message);
 	}
