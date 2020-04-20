@@ -428,6 +428,13 @@ namespace Magic
 					Magic_Thread_Wait(Thread);
 					Magic_CloseHandle(Thread);
 
+					//缓存关闭完成消息回调
+					std::vector<Callback_Message> vec_MonitorVec;
+					auto _MonitorVec = threadobject->m_umap_MonitorFunction.find(MESSAGE_THREAD_CLOSED);
+					if (_MonitorVec != threadobject->m_umap_MonitorFunction.end()) {
+						vec_MonitorVec = _MonitorVec->second;
+					}
+
 					Magic_Thread_Mutex_Lock(&m_Mutex);
 					m_set_ThreadObject.erase(threadobject);
 					Magic_Thread_Mutex_unLock(&m_Mutex);
@@ -442,6 +449,10 @@ namespace Magic
 					Magic_Thread_SEM_destroy(_SEM);
 
 					Magic_Thread_Mutex_Destroy(&_mutex);
+
+					for (auto i = vec_MonitorVec.begin();i != vec_MonitorVec.end();i++ ) {
+						i->operator()(MESSAGE_THREAD_CLOSE, (long long)threadobject);
+					}
 				};
 			}
 			else {

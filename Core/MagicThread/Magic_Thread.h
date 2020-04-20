@@ -63,6 +63,7 @@
 #define MM_MESS		Magic::Management::MESSAGE_TYPE _MessageType, Magic::Management::MESSAGE _Message
 
 #define MESSAGE_THREAD_CLOSE			0xFFFFFFFF
+#define MESSAGE_THREAD_CLOSED			0xFFFFFFFE	//警告此消息的将在UpdataThreadManagement的线程中处理
 
 namespace Magic
 {
