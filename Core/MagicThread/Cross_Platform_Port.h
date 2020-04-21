@@ -117,7 +117,7 @@ typedef unsigned int								Magic_SOCKSET;
 #define Magic_CloseHandle(a)
 #define Magic_Thread_Wait(a)						pthread_join(a, NULL)
 #define Magic_Thread_Exit(a)						pthread_cancel(a)
-#define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		(sem_init(&a,f,g) == 0)
+#define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		(sem_init(&a,(int)f,g) == 0)
 #define Magic_Thread_SEM_Wait(a)					sem_wait(&a)
 #define Magic_Thread_SEM_Wait_Time(a,t)				do{												\
 														struct timespec ts;							\
