@@ -109,7 +109,7 @@ typedef unsigned int								Magic_SOCKSET;
 
 #define S_THREAD									__declspec(thread)
 
-#else
+#elif __linux__
 #define Magic_Sprintf_s snprintf
 
 #define Magic_Thread_Create(f,b,c,d)				(pthread_create(&f,b,c,d) == 0)
