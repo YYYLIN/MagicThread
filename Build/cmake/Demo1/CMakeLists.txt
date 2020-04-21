@@ -33,10 +33,11 @@ IF(WIN32)
 		debug MagicThread_d.lib optimized MagicThread.lib)
 ENDIF(WIN32)
 IF(UNIX)
+	#find_library(MAGIC_THREAD_LIBRARY MagicThread_d HINTS /home/CXX/MagicThread/bin/Linux/x86/)
 	link_directories(
-		${PROJECT_SOURCE_DIR}../../../bin/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64})
-	link_libraries(
-		debug lMagicThread_d.so optimized lMagicThread.so)
+		${PROJECT_SOURCE_DIR}/../../bin/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64})
+	#link_libraries(
+	#	debug -lMagicThread_d.so optimized -lMagicThread.so)
 ENDIF(UNIX)
 
 IF(WIN32)
@@ -45,6 +46,9 @@ IF(WIN32)
 ENDIF(WIN32)
 
 ADD_EXECUTABLE (${NOW_PROJECT_NAME} ${SOURCE_FILES})
+IF(UNIX)
+	target_link_libraries(${NOW_PROJECT_NAME} debug -lMagicThread_d optimized -lMagicThread)
+ENDIF(UNIX)
 
 #RUNTIME	.exe°¢.dll	ø…÷¥––µµ
 SET_TARGET_PROPERTIES(${NOW_PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ../../../bin/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64} OUTPUT_NAME_DEBUG ${NOW_PROJECT_NAME}_d)
