@@ -35,7 +35,7 @@
 #include <process.h>
 #include <windows.h>
 #include <io.h>
-#else
+#elif __linux__
 #include <sys/time.h>
 #include <pthread.h>
 #include <semaphore.h>

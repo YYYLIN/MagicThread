@@ -38,7 +38,6 @@ ENDIF(WIN32)
 
 add_definitions(-DMAGIC_THREAD_EXPORTS)
 IF(UNIX)
-	add_definitions(-DLINUX)
 ENDIF(UNIX)
 IF(WIN32)
 	add_definitions(-DUNICODE -D_UNICODE)

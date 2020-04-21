@@ -44,7 +44,7 @@
 
 #endif
 
-#elif LINUX
+#elif __linux__
 
 #define DLL_MAGIC_THREAD_OUTPUT  
 #define DLL_MAGIC_THREAD_OUTPUT_INPUT

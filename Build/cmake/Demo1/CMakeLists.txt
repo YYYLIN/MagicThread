@@ -6,6 +6,19 @@ else(CMAKE_CL_64)
 set(NOW_x86_x64 "x86")
 endif(CMAKE_CL_64)
 
+IF(UNIX)
+	IF(RELEASE_MODE)
+	set(CMAKE_BUILD_TYPE "Release")
+	MESSAGE(STATUS "This is Release Mode")
+	ELSE(RELEASE_MODE)
+	set(CMAKE_BUILD_TYPE "Debug")
+	MESSAGE(STATUS "This is Debug Mode")
+	ENDIF(RELEASE_MODE)
+set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} "/usr/local")
+#ARM∞Ê”≈ªØ÷∏¡Ó
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -optimize-sibling-calls -fsigned-char")
+ENDIF(UNIX)
+
 include_directories(
 ../../../Core/MagicThread
 )
