@@ -107,6 +107,8 @@ typedef unsigned int								Magic_SOCKSET;
 #define DLL_GetFunction(a, b)						GetProcAddress(a, b)
 #define DLL_HANDLE									HINSTANCE
 
+#define Magic_strcpy_s(a,b,c)						strcpy_s(a,b,c)
+
 #define S_THREAD									__declspec(thread)
 
 #elif __linux__
@@ -164,6 +166,8 @@ typedef int											Magic_SHARED;
 #define DLL_CLOSE(a)								dlclose(a)
 #define DLL_GetFunction(a, b)						dlsym(a, b)
 #define DLL_HANDLE									void*
+
+#define Magic_strcpy_s(a,b,c)						strcpy(a,c)
 
 #define S_THREAD									__thread
 

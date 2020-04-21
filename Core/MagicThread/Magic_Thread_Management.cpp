@@ -370,7 +370,7 @@ namespace Magic
 				return;
 
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
-			strcpy_s(_name, _size, _pThreadObject->m_Name.c_str());
+			Magic_strcpy_s(_name, _size, _pThreadObject->m_Name.c_str());
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
 		}
 
@@ -382,7 +382,7 @@ namespace Magic
 				return;
 
 			Magic_Thread_Mutex_Lock(&_pThreadPoolObject->m_MessageMutex);
-			strcpy_s(_name, _size, _pThreadPoolObject->m_Name.c_str());
+			Magic_strcpy_s(_name, _size, _pThreadPoolObject->m_Name.c_str());
 			Magic_Thread_Mutex_unLock(&_pThreadPoolObject->m_MessageMutex);
 		}
 
