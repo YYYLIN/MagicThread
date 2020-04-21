@@ -77,8 +77,8 @@ namespace Magic
 				SystemThread::Instance()->SendMessageTo(_Message.m_MessageType, _Message.m_Message, _Message.m_CallBack);
 		}
 
-		ThreadObject* SystemThread::m_S_T_pThreadObject = 0;
-		ThreadPoolObject* SystemThread::m_S_T_pThreadPoolObject = 0;
+		S_THREAD ThreadObject* SystemThread::m_S_T_pThreadObject = 0;
+		S_THREAD ThreadPoolObject* SystemThread::m_S_T_pThreadPoolObject = 0;
 		SystemThread* SystemThread::m_S_pSystemThread = 0;
 
 		SystemThread::SystemThread()
