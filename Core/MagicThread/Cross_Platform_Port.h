@@ -40,6 +40,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <string.h>
 #endif
 
 #ifdef WIN32
@@ -167,7 +168,7 @@ typedef int											Magic_SHARED;
 #define DLL_GetFunction(a, b)						dlsym(a, b)
 #define DLL_HANDLE									void*
 
-#define Magic_strcpy_s(a,b,c)						strcpy(a,c)
+#define Magic_strcpy_s(a,b,c)						strncpy(a,c,b)
 
 #define S_THREAD									__thread
 
