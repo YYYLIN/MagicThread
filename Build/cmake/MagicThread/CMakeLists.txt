@@ -14,7 +14,7 @@ IF(UNIX)
 	ENDIF(RELEASE_MODE)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} "/usr/local")
 #ARM∞Ê”≈ªØ÷∏¡Ó
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -mfloat-abi=softfp -mfpu=neon -fPIC -optimize-sibling-calls -fsigned-char")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -optimize-sibling-calls -fsigned-char")
 ENDIF(UNIX)
 
 set(NOW_PROJECT_NAME MagicThread)
