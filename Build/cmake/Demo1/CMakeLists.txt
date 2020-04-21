@@ -24,11 +24,11 @@ include_directories(
 )
 
 set(SOURCE_FILES
-${PROJECT_SOURCE_DIR}../../../Core/Demo1/main.cpp)
+${PROJECT_SOURCE_DIR}/../../Core/Demo1/main.cpp)
 
 IF(WIN32)
 	link_directories(
-		${PROJECT_SOURCE_DIR}../../../lib/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64})
+		${PROJECT_SOURCE_DIR}/../../lib/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64})
 	link_libraries(
 		debug MagicThread_d.lib optimized MagicThread.lib)
 ENDIF(WIN32)
