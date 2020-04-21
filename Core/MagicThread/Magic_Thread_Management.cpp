@@ -425,6 +425,9 @@ namespace Magic
 				Magic_SEM _Synch_SEM = _auto->second.m_Synch_SEM;
 				return [this, key, Thread, threadobject, _Mutex, _SEM, _Synch_SEM]() {
 					Magic_MUTEX _mutex = _Mutex;
+					Magic_SEM _sem = _SEM;
+					Magic_SEM _synch_sem = _Synch_SEM;
+
 					Magic_Thread_Wait(Thread);
 					Magic_CloseHandle(Thread);
 
@@ -445,8 +448,8 @@ namespace Magic
 					Magic_Thread_Mutex_unLock(&_mutex);
 					Magic_Thread_Mutex_unLock(&m_Mutex);
 
-					Magic_Thread_SEM_destroy(_Synch_SEM);
-					Magic_Thread_SEM_destroy(_SEM);
+					Magic_Thread_SEM_destroy(_synch_sem);
+					Magic_Thread_SEM_destroy(_sem);
 
 					Magic_Thread_Mutex_Destroy(&_mutex);
 
