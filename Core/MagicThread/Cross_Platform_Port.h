@@ -134,14 +134,14 @@ typedef unsigned int								Magic_SOCKSET;
 
 
 #define Magic_Thread_SEM_Post(a)					sem_post(&a)
-#define Magic_Thread_SEM_destroy					sem_destroy(&a)
+#define Magic_Thread_SEM_destroy(a)					sem_destroy(&a)
 #define Magic_Thread_Mutex_Lock(a)					pthread_mutex_lock(a)
 #define Magic_Thread_Mutex_unLock(a)				pthread_mutex_unlock(a)
 #define Magic_Thread_Mutex_Init(a)					pthread_mutex_init(a, NULL)
 #define Magic_Thread_Mutex_Destroy(a)				pthread_mutex_destroy(a)
 
 #define arcoss										void*
-#define arcoss_return								((void*)(a))
+#define arcoss_return(a)							((void*)(a))
 typedef pthread_t									Magic_THREAD;
 typedef	sem_t										Magic_SEM;
 typedef pthread_mutex_t								Magic_MUTEX;
