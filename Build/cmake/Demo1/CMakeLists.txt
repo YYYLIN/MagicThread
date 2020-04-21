@@ -23,14 +23,21 @@ include_directories(
 ../../../Core/MagicThread
 )
 
-link_directories(
-${PROJECT_SOURCE_DIR}../../../lib/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64})
-
 set(SOURCE_FILES
 ${PROJECT_SOURCE_DIR}../../../Core/Demo1/main.cpp)
 
-link_libraries(
-	debug MagicThread_d.lib optimized MagicThread.lib)
+IF(WIN32)
+	link_directories(
+		${PROJECT_SOURCE_DIR}../../../lib/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64})
+	link_libraries(
+		debug MagicThread_d.lib optimized MagicThread.lib)
+ENDIF(WIN32)
+IF(UNIX)
+	link_directories(
+		${PROJECT_SOURCE_DIR}../../../bin/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64})
+	link_libraries(
+		debug lMagicThread_d.so optimized lMagicThread.so)
+ENDIF(UNIX)
 
 IF(WIN32)
 	add_definitions(-DUNICODE -D_UNICODE)
