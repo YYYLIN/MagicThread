@@ -36,7 +36,7 @@ namespace Magic
 		{
 			if (!SystemThread::Instance())
 			{
-				//创建线程管理系统
+				//鍒涘缓绾跨▼绠＄悊绯荤粺
 				Magic::Management::SystemThread* _pSystemThread = 0;
 				_pSystemThread = new Magic::Management::SystemThread;
 				bool result = _pSystemThread->Initialize(threadmessagemode);

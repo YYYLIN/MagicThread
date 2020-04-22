@@ -102,7 +102,7 @@ namespace Magic
 			Magic_Thread_Mutex_Destroy(&m_MutexPoolObject);
 			Magic_Thread_Mutex_Destroy(&m_Mutex);
 
-			//·¢ËÍÖ÷Ïß³ÌÍË³öÏûÏ¢
+			//å‘é€ä¸»çº¿ç¨‹é€€å‡ºæ¶ˆæ¯
 			MessageHandle(m_S_T_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)m_S_T_pThreadObject);
 		}
 
@@ -296,7 +296,7 @@ namespace Magic
 			if (_ThreadMessageMode)
 				Magic_Thread_SEM_Post(_pThreadObject->m_Queue_SEM);
 
-			//Í¬²½Ä£Ê½£¬µÈ´ıÆäËûÏß³Ì´¦ÀíÍêºóÔÙ·µ»Ø
+			//åŒæ­¥æ¨¡å¼ï¼Œç­‰å¾…å…¶ä»–çº¿ç¨‹å¤„ç†å®Œåå†è¿”å›
 			if (_pSendThreadObject)
 				Magic_Thread_SEM_Wait(_pSendThreadObject->m_Synch_SEM);
 
@@ -325,7 +325,7 @@ namespace Magic
 
 			Magic_Thread_SEM_Post(_pThreadPoolObject->m_queue_SEM);
 
-			//Í¬²½Ä£Ê½£¬µÈ´ıÆäËûÏß³Ì´¦ÀíÍêºóÔÙ·µ»Ø
+			//åŒæ­¥æ¨¡å¼ï¼Œç­‰å¾…å…¶ä»–çº¿ç¨‹å¤„ç†å®Œåå†è¿”å›
 			if (_pSendThreadObject)
 				Magic_Thread_SEM_Wait(_pSendThreadObject->m_Synch_SEM);
 
@@ -431,7 +431,7 @@ namespace Magic
 					Magic_Thread_Wait(Thread);
 					Magic_CloseHandle(Thread);
 
-					//»º´æ¹Ø±ÕÍê³ÉÏûÏ¢»Øµ÷
+					//ç¼“å­˜å…³é—­å®Œæˆæ¶ˆæ¯å›è°ƒ
 					std::vector<Callback_Message> vec_MonitorVec;
 					auto _MonitorVec = threadobject->m_umap_MonitorFunction.find(MESSAGE_THREAD_CLOSED);
 					if (_MonitorVec != threadobject->m_umap_MonitorFunction.end()) {
@@ -494,7 +494,7 @@ namespace Magic
 			ThreadObject* _pThreadObject = (ThreadObject*)_data;
 			m_S_T_pThreadObject = _pThreadObject;
 
-			//Èç¹ûÖ»ÔËĞĞÒ»´Î£¬ÄÇÃ´Ö±½Ó¹Ø±ÕÑ­»·
+			//å¦‚æœåªè¿è¡Œä¸€æ¬¡ï¼Œé‚£ä¹ˆç›´æ¥å…³é—­å¾ªç¯
 			if (_pThreadObject->m_ThreadTypeMode == THREAD_RUN_ONCE) {
 				_pThreadObject->m_ThreadRunState = THREAD_STOP;
 			}
@@ -519,7 +519,7 @@ namespace Magic
 			_pThreadObject->m_Last_queue_Message = _pThreadObject->m_queue_Message;
 			_pThreadObject->m_queue_Message.clear();
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
-			//´¦ÀíÉÏÒ»¸öÑ­»·ÊÕ¼¯µ½µÄÏûÏ¢
+			//å¤„ç†ä¸Šä¸€ä¸ªå¾ªç¯æ”¶é›†åˆ°çš„æ¶ˆæ¯
 			for (auto& a : _pThreadObject->m_Last_queue_Message) {
 				if (a.m_CallBack) {
 					a.m_CallBack(a.m_MessageType, a.m_Message);

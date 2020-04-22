@@ -1,9 +1,9 @@
-# CMake ×îµÍ°æ±¾ºÅÒªÇó
+# CMake æœ€ä½ç‰ˆæœ¬å·è¦æ±‚
 cmake_minimum_required (VERSION 2.8)
-# ÏîÄ¿ĞÅÏ¢
+# é¡¹ç›®ä¿¡æ¯
 project (MagicThread)
 
-# Ìí¼Ó Magic_Engine ×ÓÄ¿Â¼
+# æ·»åŠ  Magic_Engine å­ç›®å½•
 add_subdirectory(MagicThread)
 add_subdirectory(Demo1)
 

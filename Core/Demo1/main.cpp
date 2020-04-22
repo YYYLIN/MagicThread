@@ -1,5 +1,5 @@
 /*
-´´½¨Ïß³ÌºÍ´¦Àí¹¦ÄÜÀı×Ó
+åˆ›å»ºçº¿ç¨‹å’Œå¤„ç†åŠŸèƒ½ä¾‹å­
 */
 
 #include "Magic_Thread.h"
@@ -9,27 +9,27 @@ using namespace Magic::Management;
 int main() {
 	bool _result = CreateThreadManagement();
 	if (!_result) {
-		printf("CreateThreadManagementÊ§°Ü!!");
+		printf("CreateThreadManagementå¤±è´¥!!");
 		return false;
 	}
 
 	THREAD_OBJECT _THREAD_OBJECT = CreateThreadObject("Thread1", THREAD_LOOP_RUN, THREAD_MESSAGE_WAIT);
-	//·¢ËÍÏûÏ¢¸øThread1´¦Àí
+	//å‘é€æ¶ˆæ¯ç»™Thread1å¤„ç†
 	SendMessageTo("Thread1", 0, 0, [](MM_MESS) {
-		printf("ÔÚThread1ÖĞ´¦Àí1\n");
+		printf("åœ¨Thread1ä¸­å¤„ç†1\n");
 	});
-	//·¢ËÍÏûÏ¢¸øThread1´¦Àí²¢´«µİ²ÎÊı
-	std::string _Data = "ÎÒÊÇ»ğ³µÍõ!";
+	//å‘é€æ¶ˆæ¯ç»™Thread1å¤„ç†å¹¶ä¼ é€’å‚æ•°
+	std::string _Data = "æˆ‘æ˜¯ç«è½¦ç‹!";
 	SendMessageTo(_THREAD_OBJECT, 0, 0, [_Data](MM_MESS) {
-		printf("ÔÚThread1ÖĞ´¦Àí:%s\n", _Data.c_str());
+		printf("åœ¨Thread1ä¸­å¤„ç†:%s\n", _Data.c_str());
 	});
 
-	printf("ÔÚMainThreadÖĞ´¦Àí\n");
+	printf("åœ¨MainThreadä¸­å¤„ç†\n");
 
-	//·¢ËÍÏûÏ¢¸øThread1´¦Àí£¬²¢ÇÒµÈ´ı´¦ÀíÍê³É
+	//å‘é€æ¶ˆæ¯ç»™Thread1å¤„ç†ï¼Œå¹¶ä¸”ç­‰å¾…å¤„ç†å®Œæˆ
 	SendMessageTo("Thread1", 0, 0, [&_Data](MM_MESS) {
-		printf("ÔÚThread1ÖĞÉ±ËÀ:%s\n", _Data.c_str());
-		_Data = "»ğ³µÍõËÀÁË!";
+		printf("åœ¨Thread1ä¸­æ€æ­»:%s\n", _Data.c_str());
+		_Data = "ç«è½¦ç‹æ­»äº†!";
 	}, true);
 
 	printf("%s", _Data.c_str());

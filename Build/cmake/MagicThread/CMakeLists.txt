@@ -13,9 +13,15 @@ IF(UNIX)
 	MESSAGE(STATUS "This is Debug Mode")
 	ENDIF(RELEASE_MODE)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} "/usr/local")
-#ARM╟Фсе╩╞ж╦аН
+#ARMГ┴┬Д╪≤Е▄√Ф▄┤Д╩╓
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -optimize-sibling-calls -fsigned-char")
 ENDIF(UNIX)
+
+#Е┐▐vsД╦╜Ф╥╩Е┼═UTF-8Г╪√Х╞▒
+IF(WIN32)
+add_compile_options("$<$<C_COMPILER_ID:MSVC>:/source-charset:utf-8>")
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>")
+ENDIF(WIN32)
 
 set(NOW_PROJECT_NAME MagicThread)
 
@@ -44,11 +50,11 @@ IF(WIN32)
 ENDIF(WIN32)
 
 
-# ╡Иур╣╠г╟д©б╪об╣дкЫспт╢нд╪Ч
-# ╡╒╫╚цШЁф╠ё╢Ф╣╫ DIR_LIB_SRCS ╠Да©
+# Ф÷╔Ф┴╬Е╫⌠Е┴█Г⌡╝Е╫∙Д╦▀Г └Ф┴─Ф°┴Ф╨░Ф√┤Д╩╤
+# Е╧╤Е╟├Е░█Г╖╟Д©²Е╜≤Е┬╟ DIR_LIB_SRCS Е▐≤И┤▐
 #aux_source_directory(../../../Core/${NOW_PROJECT_NAME} DIR_LIB_SRCS)
 
-# иЗЁиа╢╫с©Б
+# Г■÷Ф┬░И⌠╬Ф▌╔Е╨⌠
 #add_library (Magic_Engine STATIC ${DIR_LIB_SRCS})
 add_library (${NOW_PROJECT_NAME} SHARED
 ${INCLUDE_INSTALL_FILES} 
@@ -58,16 +64,16 @@ IF(UNIX)
 	TARGET_LINK_LIBRARIES(${NOW_PROJECT_NAME} -pthread)
 ENDIF(UNIX)
 
-#RUNTIME	.exe║╒.dll	©иж╢пп╣╣
+#RUNTIME	.exeЦ─│.dll	Е▐╞Ф┴╖Х║▄Ф║ё
 SET_TARGET_PROPERTIES(${NOW_PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ../../../bin/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64} OUTPUT_NAME_DEBUG ${NOW_PROJECT_NAME}_d)
 #LIBRARY		.so
 SET_TARGET_PROPERTIES(${NOW_PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ../../../bin/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64} OUTPUT_NAME_DEBUG ${NOW_PROJECT_NAME}_d)
-#ARCHIVE	.a║╒.lib╟Э╨╛ dll ╣да╛╫А╫ИцФ	.a
+#ARCHIVE	.aЦ─│.libЕ▄┘Е░╚ dll Г └Х©·Г╩⌠Д╩▀И²╒	.a
 SET_TARGET_PROPERTIES(${NOW_PROJECT_NAME} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ../../../lib/${CMAKE_SYSTEM_NAME}/${NOW_x86_x64} OUTPUT_NAME_DEBUG ${NOW_PROJECT_NAME}_d)
 
-#╟╡в╟м╥нд╪Ч
+#Е╝┴Хё┘Е╓╢Ф√┤Д╩╤
 install(FILES ${INCLUDE_INSTALL_FILES} DESTINATION ${PROJECT_SOURCE_DIR}/../../Install/${NOW_PROJECT_NAME}/Include/Management)
-#╟╡в╟©иж╢ппнд╪Ч
+#Е╝┴Хё┘Е▐╞Ф┴╖Х║▄Ф√┤Д╩╤
 install(TARGETS ${NOW_PROJECT_NAME}
 RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../../Install/${NOW_PROJECT_NAME}/bin/${NOW_x86_x64}
 LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/../../Install/${NOW_PROJECT_NAME}/lib/${NOW_x86_x64}

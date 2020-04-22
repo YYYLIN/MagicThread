@@ -48,13 +48,13 @@
 #define Magic_CLOCK()	clock()
 
 /*
-*¹¦ÄÜ£º´´½¨Ïß³Ì
-*²ÎÊı£º
-*	f = Ïß³Ì¶ÔÏóÖ¸Õë
-*	b = Ä¬ÈÏ¿Õ£¨Æ½Ì¨ÌØĞÔ£©
-*	c = Ïß³Ìº¯ÊıÖ¸Õë
-*	d = Ïß³Ì²ÎÊı
-*·µ»ØÖµ£ºÈç¹ûµÈÓÚ·ÇÁãÖµ³É¹¦
+*åŠŸèƒ½ï¼šåˆ›å»ºçº¿ç¨‹
+*å‚æ•°ï¼š
+*	f = çº¿ç¨‹å¯¹è±¡æŒ‡é’ˆ
+*	b = é»˜è®¤ç©ºï¼ˆå¹³å°ç‰¹æ€§ï¼‰
+*	c = çº¿ç¨‹å‡½æ•°æŒ‡é’ˆ
+*	d = çº¿ç¨‹å‚æ•°
+*è¿”å›å€¼ï¼šå¦‚æœç­‰äºéé›¶å€¼æˆåŠŸ
 */
 #define Magic_Thread_Create(f,b,c,d)				f = CreateThread(NULL, b, c, d, 0, NULL)
 #define Magic_ResumeThread(a)						ResumeThread(a)
@@ -63,15 +63,15 @@
 #define Magic_Thread_Exit(a)						TerminateThread(a, 0)
 
 /*
-*¹¦ÄÜ£º´´½¨¹²ÏíÏûÏ¢
-*²ÎÊı£º
-*	a = ¶ÔÏóÖ¸Õë
-*	b = Win32Æ½Ì¨²ÎÊı
-*	c = Win32Æ½Ì¨²ÎÊı
-*	d = Win32Æ½Ì¨²ÎÊı×î´óÏûÏ¢´ÎÊı
-*	e = Win32Æ½Ì¨²ÎÊı¹²ÏíÃû×Ö
-*	f = LinuxÆ½Ì¨²ÎÊı
-*	g = LinuxÆ½Ì¨²ÎÊı
+*åŠŸèƒ½ï¼šåˆ›å»ºå…±äº«æ¶ˆæ¯
+*å‚æ•°ï¼š
+*	a = å¯¹è±¡æŒ‡é’ˆ
+*	b = Win32å¹³å°å‚æ•°
+*	c = Win32å¹³å°å‚æ•°
+*	d = Win32å¹³å°å‚æ•°æœ€å¤§æ¶ˆæ¯æ¬¡æ•°
+*	e = Win32å¹³å°å‚æ•°å…±äº«åå­—
+*	f = Linuxå¹³å°å‚æ•°
+*	g = Linuxå¹³å°å‚æ•°
 */
 #define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		a = CreateSemaphore(b,c,d,e)
 #define Magic_Thread_SEM_Wait(a)					WaitForSingleObject(a, INFINITE)
@@ -154,7 +154,7 @@ typedef int											Magic_SHARED;
 #define Magic_MSleep(a)								usleep(a * 1000)
 #define Magic_ProgressID							getpid
 
-/*ÎÄ¼ş²Ù×÷*/
+/*æ–‡ä»¶æ“ä½œ*/
 #define Magic_CloseSocket(a)						close(a)
 #define Magic_File_Open(a, b, c)					a = fopen(b, c)
 #define Magic_File_Read(a, b, c, d)					fread(a, b, c, d)
