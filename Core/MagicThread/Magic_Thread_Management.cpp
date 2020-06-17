@@ -413,6 +413,10 @@ namespace Magic
 
 		}
 
+		void SystemThread::TerminateThread(THREAD_OBJECT _THREAD_OBJECT) {
+			Magic_Thread_Exit();
+		}
+
 		Callback_Void SystemThread::UpdataStop(MAP_SRTING_THREADOBJECT::iterator& _auto)
 		{
 			if (m_S_T_pThreadObject != &_auto->second && _auto->second.m_ThreadRunState == THREAD_STOP)
@@ -453,7 +457,7 @@ namespace Magic
 
 					Magic_Thread_Mutex_Destroy(&_mutex);
 
-					for (auto i = vec_MonitorVec.begin();i != vec_MonitorVec.end();i++ ) {
+					for (auto i = vec_MonitorVec.begin(); i != vec_MonitorVec.end(); i++) {
 						i->operator()(MESSAGE_THREAD_CLOSE, (long long)threadobject);
 					}
 				};
