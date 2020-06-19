@@ -196,6 +196,17 @@ namespace Magic
 
 		/*
 		*功能：
+		*	 立即强制结束指定线程(注意：使用此函数需要明确知道指定线程中是否可能造成内存泄露，未释放的锁问题)
+		*    不在通知MESSAGE_THREAD_CLOSE消息。但是会通知MESSAGE_THREAD_CLOSED消息。
+		*参数：
+		*	[IN]_THREAD_OBJECT = 线程对象
+		*返回值：
+		*	bool = false 失败(不能结束当前线程)
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool TerminateThread(THREAD_OBJECT _THREAD_OBJECT);
+
+		/*
+		*功能：
 		*	设置等待线程的最长等待时长
 		*参数：
 		*	_THREAD_OBJECT = 线程对象

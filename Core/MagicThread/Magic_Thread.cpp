@@ -97,6 +97,10 @@ namespace Magic
 			SystemThread::Instance()->Shutdown(SystemThread::Instance()->GetNowTHREAD_OBJECT());
 		}
 
+		bool TerminateThread(THREAD_OBJECT _THREAD_OBJECT) {
+			return SystemThread::Instance()->TerminateThread(_THREAD_OBJECT);
+		}
+
 		bool SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time) {
 			return SystemThread::Instance()->SetWaitTime(_THREAD_OBJECT, time);
 		}

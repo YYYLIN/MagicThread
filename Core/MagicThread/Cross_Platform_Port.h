@@ -60,7 +60,7 @@
 #define Magic_ResumeThread(a)						ResumeThread(a)
 #define Magic_CloseHandle(a)						CloseHandle(a)
 #define Magic_Thread_Wait(a)						WaitForSingleObject(a, INFINITE)
-#define Magic_Thread_Exit(a)						TerminateThread(a, 0)
+#define Magic_Thread_Terminate(a)					TerminateThread(a)
 
 /*
 *功能：创建共享消息
@@ -119,7 +119,7 @@ typedef unsigned int								Magic_SOCKSET;
 #define Magic_ResumeThread(a)
 #define Magic_CloseHandle(a)
 #define Magic_Thread_Wait(a)						pthread_join(a, NULL)
-#define Magic_Thread_Exit(a)						pthread_cancel(a)
+#define Magic_Thread_Terminate(a)					pthread_cancel(a)
 #define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		(sem_init(&a,(int)f,g) == 0)
 #define Magic_Thread_SEM_Wait(a)					sem_wait(&a)
 #define Magic_Thread_SEM_Wait_Time(a,t)				do{												\

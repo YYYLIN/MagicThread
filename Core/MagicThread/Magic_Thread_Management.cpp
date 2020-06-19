@@ -167,10 +167,10 @@ namespace Magic
 					THREAD_OBJECT _THREAD_OBJECT = Create(_text, THREAD_LOOP_RUN, THREAD_MESSAGE_WAIT, true);
 					SendMessageTo(_THREAD_OBJECT, 0, 0,
 						[_THREAD_POOL_OBJECT](MESSAGE_TYPE, MESSAGE)
-						{
-							m_S_T_pThreadPoolObject = (ThreadPoolObject*)_THREAD_POOL_OBJECT;
-							m_S_T_pThreadObject->m_ThreadMessageMode = THREAD_MESSAGE_NO_WAIT;
-						});
+					{
+						m_S_T_pThreadPoolObject = (ThreadPoolObject*)_THREAD_POOL_OBJECT;
+						m_S_T_pThreadObject->m_ThreadMessageMode = THREAD_MESSAGE_NO_WAIT;
+					});
 
 					MonitorThread(_THREAD_OBJECT, BindClassFunctionObject(&ThreadPoolObject::Updata, &_findTO->second));
 					if (_THREAD_OBJECT)
@@ -222,9 +222,9 @@ namespace Magic
 		bool SystemThread::SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time) {
 			return this->SendMessageTo(_THREAD_OBJECT, 0, 0,
 				[time, _THREAD_OBJECT](MM_MESS) {
-					ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
-					_pThreadObject->m_ThreadWaitTime = time;
-				});
+				ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
+				_pThreadObject->m_ThreadWaitTime = time;
+			});
 		}
 
 		bool SystemThread::MonitorThread(THREAD_OBJECT _THREAD_OBJECT, const Callback_Void& _CallBack) {
@@ -232,7 +232,7 @@ namespace Magic
 
 			return SendMessageTo(_THREAD_OBJECT, 0, 0, [_BufferCallback](MESSAGE_TYPE _MessageType, MESSAGE _Message) {
 				m_S_T_pThreadObject->m_vec_Callback.push_back(_BufferCallback);
-				});
+			});
 		}
 
 		bool SystemThread::MonitorThreadPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, const Callback_Void& _CallBack) {
@@ -241,7 +241,7 @@ namespace Magic
 
 			return SendMessageToPool(_THREAD_POOL_OBJECT, 0, 0, [_BufferCallback](MESSAGE_TYPE _MessageType, MESSAGE _Message) {
 				m_S_T_pThreadObject->m_vec_Callback.push_back(_BufferCallback);
-				});
+			});
 		}
 
 		bool SystemThread::MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)
@@ -254,7 +254,7 @@ namespace Magic
 					_MointorVec->second.push_back(_BufferCallback);
 				else
 					m_S_T_pThreadObject->m_umap_MonitorFunction.insert(std::make_pair(_MessageType, std::vector<Callback_Message>({ _BufferCallback })));
-				});
+			});
 		}
 
 		bool SystemThread::MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)
@@ -267,7 +267,7 @@ namespace Magic
 					_MointorVec->second.push_back(_BufferCallback);
 				else
 					m_S_T_pThreadObject->m_umap_MonitorFunction.insert(std::make_pair(_MessageType, std::vector<Callback_Message>({ _BufferCallback })));
-				});
+			});
 		}
 
 		bool SystemThread::SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
@@ -413,8 +413,24 @@ namespace Magic
 
 		}
 
-		void SystemThread::TerminateThread(THREAD_OBJECT _THREAD_OBJECT) {
-			Magic_Thread_Exit();
+		bool SystemThread::TerminateThread(THREAD_OBJECT _THREAD_OBJECT) {
+			ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
+			if (m_S_T_pThreadObject == _pThreadObject) {
+				return false;
+			}
+			Magic_Thread_Mutex_Lock(&m_Mutex);
+			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
+			//在强行结束线程时，必须保证被结束的线程没有占用锁。所导致的程序锁死问题。和资源未释放
+			Magic_Thread_Terminate(_pThreadObject->m_Thread);
+			Magic_Thread_Wait(_pThreadObject->m_Thread);
+
+			Magic_Thread_Mutex_unLock(&m_Mutex);
+			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
+
+			//发送释放线程资源的消息
+			Shutdown(_THREAD_OBJECT);
+
+			return true;
 		}
 
 		Callback_Void SystemThread::UpdataStop(MAP_SRTING_THREADOBJECT::iterator& _auto)
@@ -458,7 +474,7 @@ namespace Magic
 					Magic_Thread_Mutex_Destroy(&_mutex);
 
 					for (auto i = vec_MonitorVec.begin(); i != vec_MonitorVec.end(); i++) {
-						i->operator()(MESSAGE_THREAD_CLOSE, (long long)threadobject);
+						i->operator()(MESSAGE_THREAD_CLOSED, (long long)threadobject);
 					}
 				};
 			}
