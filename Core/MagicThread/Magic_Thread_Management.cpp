@@ -127,21 +127,24 @@ namespace Magic
 		{
 			THREAD_OBJECT _THREAD_OBJECT = 0;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
-			m_map_ThreadObject.insert(std::make_pair(_name, ThreadObject(_ThreadTypeMode, THREAD_STATE_RUN, _name, _ThreadMessageMode)));
+			if (m_map_ThreadObject.find(_name) == m_map_ThreadObject.end()) {
+				m_map_ThreadObject.insert(std::make_pair(_name, ThreadObject(_ThreadTypeMode, THREAD_STATE_RUN, _name, _ThreadMessageMode)));
 
-			auto _findTO = m_map_ThreadObject.find(_name);
-			if (_findTO != m_map_ThreadObject.end())
-			{
-				_THREAD_OBJECT = &_findTO->second;
-				m_set_ThreadObject.insert(&_findTO->second);
-				Magic_Thread_Mutex_Init(&_findTO->second.m_MessageMutex);
-				Magic_Thread_SEM_init(_findTO->second.m_Queue_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
-				Magic_Thread_SEM_init(_findTO->second.m_Synch_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
-				if (_IsNewThread) {
-					if (Magic_Thread_Create(_findTO->second.m_Thread, NULL, ThreadFunction, (void*)(&_findTO->second)))
-						Magic_ResumeThread(_findTO->second.m_Thread);
+				auto _findTO = m_map_ThreadObject.find(_name);
+				if (_findTO != m_map_ThreadObject.end())
+				{
+					_THREAD_OBJECT = &_findTO->second;
+					m_set_ThreadObject.insert(&_findTO->second);
+					Magic_Thread_Mutex_Init(&_findTO->second.m_MessageMutex);
+					Magic_Thread_SEM_init(_findTO->second.m_Queue_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
+					Magic_Thread_SEM_init(_findTO->second.m_Synch_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
+					if (_IsNewThread) {
+						if (Magic_Thread_Create(_findTO->second.m_Thread, NULL, ThreadFunction, (void*)(&_findTO->second)))
+							Magic_ResumeThread(_findTO->second.m_Thread);
+					}
 				}
 			}
+
 			Magic_Thread_Mutex_unLock(&m_Mutex);
 			return _THREAD_OBJECT;
 		}
