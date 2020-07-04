@@ -220,6 +220,19 @@ namespace Magic
 
 		/*
 		*功能：
+		*	设置是否等待线程消息
+		*参数：
+		*	_THREAD_OBJECT = 线程对象
+		*	ThreadMessageMode = 是否等待
+		*返回值：
+		*	true 成功 false失败
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SetMode(THREAD_OBJECT _THREAD_OBJECT, ThreadMessageMode _ThreadMessageMode);
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SetMode(const char* _name, ThreadMessageMode _ThreadMessageMode);
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SetMode(ThreadMessageMode _ThreadMessageMode);
+
+		/*
+		*功能：
 		*	监听线程
 		*参数：
 		*	_THREAD_OBJECT = 线程对象

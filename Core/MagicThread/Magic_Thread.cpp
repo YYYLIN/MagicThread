@@ -113,6 +113,18 @@ namespace Magic
 			return SystemThread::Instance()->SetWaitTime(SystemThread::Instance()->GetNowTHREAD_OBJECT(), time);
 		}
 
+		bool SetMode(THREAD_OBJECT _THREAD_OBJECT, ThreadMessageMode _ThreadMessageMode) {
+			return SystemThread::Instance()->SetMode(_THREAD_OBJECT, _ThreadMessageMode);
+		}
+
+		bool SetMode(const char* _name, ThreadMessageMode _ThreadMessageMode) {
+			return SystemThread::Instance()->SetMode(SystemThread::Instance()->GetTHREAD_OBJECT(_name), _ThreadMessageMode);
+		}
+
+		bool SetMode(ThreadMessageMode _ThreadMessageMode) {
+			return SystemThread::Instance()->SetMode(SystemThread::Instance()->GetNowTHREAD_OBJECT(), _ThreadMessageMode);
+		}
+
 		bool MonitorThread(THREAD_OBJECT _THREAD_OBJECT, const Callback_Void& _CallBack) {
 			return SystemThread::Instance()->MonitorThread(_THREAD_OBJECT, _CallBack);
 		}

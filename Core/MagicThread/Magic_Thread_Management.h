@@ -116,6 +116,8 @@ namespace Magic
 
 			bool SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time);
 
+			bool SetMode(THREAD_OBJECT _THREAD_OBJECT, ThreadMessageMode _ThreadMessageMode);
+
 			bool MonitorThread(THREAD_OBJECT _THREAD_OBJECT, const Callback_Void& _CallBack);
 
 			bool MonitorThreadPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, const Callback_Void& _CallBack);
