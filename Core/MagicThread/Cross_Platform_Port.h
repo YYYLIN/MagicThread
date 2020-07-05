@@ -82,6 +82,8 @@
 #define Magic_Thread_Mutex_unLock(a)				LeaveCriticalSection(a)
 #define Magic_Thread_Mutex_Init(a)					InitializeCriticalSection(a)
 #define Magic_Thread_Mutex_Destroy(a)				DeleteCriticalSection(a)
+#define Magic_InterlockedExchangeAdd(a,b)			InterlockedExchangeAdd(a,b)
+#define Magic_InterlockedExchange(a,b)				InterlockedExchange(a,b)
 #define arcoss										DWORD WINAPI
 #define arcoss_return(a)							((DWORD)(a))
 typedef HANDLE										Magic_THREAD;
@@ -142,6 +144,8 @@ typedef unsigned int								Magic_SOCKSET;
 #define Magic_Thread_Mutex_unLock(a)				pthread_mutex_unlock(a)
 #define Magic_Thread_Mutex_Init(a)					pthread_mutex_init(a, NULL)
 #define Magic_Thread_Mutex_Destroy(a)				pthread_mutex_destroy(a)
+#define Magic_InterlockedExchangeAdd(a,b)			__sync_fetch_and_add(a,b)
+#define Magic_InterlockedExchange(a,b)				__sync_lock_test_and_set(a,b)
 
 #define arcoss										void*
 #define arcoss_return(a)							((void*)(a))
