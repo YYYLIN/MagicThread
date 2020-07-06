@@ -434,6 +434,10 @@ namespace Magic
 				[](MM_MESS) {
 					m_S_T_pThreadObject->m_ThreadRunState = THREAD_STOP;
 				});
+			//删除搜索缓存
+			Magic_Thread_Mutex_Lock(&m_Mutex);
+			m_set_ThreadObject.erase((ThreadObject*)_THREAD_OBJECT);
+			Magic_Thread_Mutex_unLock(&m_Mutex);
 		}
 
 		bool SystemThread::TerminateThread(THREAD_OBJECT _THREAD_OBJECT) {
@@ -441,6 +445,11 @@ namespace Magic
 			if (m_S_T_pThreadObject == _pThreadObject) {
 				return false;
 			}
+			//删除搜索缓存
+			Magic_Thread_Mutex_Lock(&m_Mutex);
+			m_set_ThreadObject.erase(_pThreadObject);
+			Magic_Thread_Mutex_unLock(&m_Mutex);
+
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
 			//在强行结束线程时，必须保证被结束的线程没有占用锁。所导致的程序锁死问题。和资源未释放
@@ -456,10 +465,6 @@ namespace Magic
 		}
 
 		void SystemThread::DeleteThreadMessage(ThreadObject* pThreadObject) {
-			Magic_Thread_Mutex_Lock(&m_Mutex);
-			m_set_ThreadObject.erase(pThreadObject);
-			Magic_Thread_Mutex_unLock(&m_Mutex);
-
 			//发送到主线程来删除线程对象内存
 			SendMessageTo(GetTHREAD_OBJECT(MAGIC_MAIN_THREAD_NAME), 0, 0,
 				[pThreadObject](MM_MESS) {
