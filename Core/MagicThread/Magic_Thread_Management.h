@@ -153,6 +153,7 @@ namespace Magic
 			bool TerminateThread(THREAD_OBJECT _THREAD_OBJECT);
 
 		protected:
+			void DeleteThreadMessage(ThreadObject* pThreadObject);
 			void DeleteThreadMemory(ThreadObject* pThreadObject);
 		public:
 			void Updata();

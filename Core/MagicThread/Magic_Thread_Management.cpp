@@ -113,10 +113,10 @@ namespace Magic
 		void SystemThread::Shutdown() {
 			size_t threadNumber = 0;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
-			threadNumber = m_set_ThreadObject.size();
-			for (auto& a : m_set_ThreadObject) {
-				if (a != m_S_T_pThreadObject) {
-					Shutdown(a);
+			threadNumber = m_map_ThreadObject.size();
+			for (auto& a : m_map_ThreadObject) {
+				if (&a.second != m_S_T_pThreadObject) {
+					Shutdown(&a.second);
 				}
 			}
 			Magic_Thread_Mutex_unLock(&m_Mutex);
@@ -124,7 +124,7 @@ namespace Magic
 			while (threadNumber > 1) {
 				ThreadMessageHandle(m_S_T_pThreadObject);
 				Magic_Thread_Mutex_Lock(&m_Mutex);
-				threadNumber = m_set_ThreadObject.size();
+				threadNumber = m_map_ThreadObject.size();
 				Magic_Thread_Mutex_unLock(&m_Mutex);
 			}
 
@@ -252,13 +252,11 @@ namespace Magic
 			bool _IsHave;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			_IsHave = m_set_ThreadObject.find(_pThreadObject) != m_set_ThreadObject.end();
+			if(_IsHave)
+				Magic_InterlockedExchange((long*)&_pThreadObject->m_ThreadMessageMode, _ThreadMessageMode);
 			Magic_Thread_Mutex_unLock(&m_Mutex);
-			if (!_IsHave)
-				return false;
 
-			Magic_InterlockedExchange((long*)&_pThreadObject->m_ThreadMessageMode, _ThreadMessageMode);
-
-			return true;
+			return _IsHave;
 		}
 
 		bool SystemThread::MonitorThread(THREAD_OBJECT _THREAD_OBJECT, const Callback_Void& _CallBack) {
@@ -315,6 +313,10 @@ namespace Magic
 			Magic_Thread_Mutex_unLock(&m_Mutex);
 			if (!_IsHave)
 				return false;
+			//理论上当在这个位置_pThreadObject内存被删除时，后面的代码会发生线程安全问题。
+			//但是当m_set_ThreadObject中的对象被删除后，还会调用一次SendMessageTo。所以按时间比例来说，当前函数运行完成时。_pThreadObject还不会到达删除位置。
+			//查看ThreadFunction的m_set_ThreadObject删除位置。
+			//所以暂时线程安全,以后有能力优化
 
 			bool _ThreadMessageMode = false;
 
@@ -399,13 +401,14 @@ namespace Magic
 			bool _IsHave;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			_IsHave = m_set_ThreadObject.find(_pThreadObject) != m_set_ThreadObject.end();
-			Magic_Thread_Mutex_unLock(&m_Mutex);
-			if (!_IsHave)
-				return;
 
-			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
-			Magic_strcpy_s(_name, _size, _pThreadObject->m_Name.c_str());
-			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
+			if (_IsHave) {
+				Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
+				Magic_strcpy_s(_name, _size, _pThreadObject->m_Name.c_str());
+				Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
+			}
+
+			Magic_Thread_Mutex_unLock(&m_Mutex);
 		}
 
 		void SystemThread::GetTHREAD_POOL_OBJECT_Name(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, char* _name, int _size)
@@ -447,13 +450,21 @@ namespace Magic
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
 			Magic_Thread_Mutex_unLock(&m_Mutex);
 
-			//发送到主线程来删除线程对象内存
-			SendMessageTo(GetTHREAD_OBJECT(MAGIC_MAIN_THREAD_NAME), 0, 0,
-				[_pThreadObject](MM_MESS) {
-				SystemThread::Instance()->DeleteThreadMemory(_pThreadObject);
-			});
+			DeleteThreadMessage(_pThreadObject);
 
 			return true;
+		}
+
+		void SystemThread::DeleteThreadMessage(ThreadObject* pThreadObject) {
+			Magic_Thread_Mutex_Lock(&m_Mutex);
+			m_set_ThreadObject.erase(pThreadObject);
+			Magic_Thread_Mutex_unLock(&m_Mutex);
+
+			//发送到主线程来删除线程对象内存
+			SendMessageTo(GetTHREAD_OBJECT(MAGIC_MAIN_THREAD_NAME), 0, 0,
+				[pThreadObject](MM_MESS) {
+				SystemThread::Instance()->DeleteThreadMemory(pThreadObject);
+			});
 		}
 
 		void SystemThread::DeleteThreadMemory(ThreadObject* pThreadObject)
@@ -479,10 +490,6 @@ namespace Magic
 			if (_MonitorVec != pThreadObject->m_umap_MonitorFunction.end()) {
 				vec_MonitorVec = _MonitorVec->second;
 			}
-
-			Magic_Thread_Mutex_Lock(&m_Mutex);
-			m_set_ThreadObject.erase(pThreadObject);
-			Magic_Thread_Mutex_unLock(&m_Mutex);
 
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			Magic_Thread_Mutex_Lock(&_Mutex);
@@ -528,11 +535,8 @@ namespace Magic
 
 			MessageHandle(_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)_pThreadObject);
 
-			//发送到主线程来删除线程对象内存
-			m_S_pSystemThread->SendMessageTo(m_S_pSystemThread->GetTHREAD_OBJECT(MAGIC_MAIN_THREAD_NAME), 0, 0,
-				[_pThreadObject](MM_MESS) {
-					SystemThread::Instance()->DeleteThreadMemory(_pThreadObject);
-				});
+			m_S_pSystemThread->DeleteThreadMessage(_pThreadObject);
+
 			return arcoss_return(0);
 		}
 
