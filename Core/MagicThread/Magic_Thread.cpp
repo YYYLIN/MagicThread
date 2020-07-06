@@ -51,8 +51,9 @@ namespace Magic
 
 		void ShutdownThreadManagement()
 		{
-			if (!SystemThread::Instance())
+			if (SystemThread::Instance())
 			{
+				SystemThread::Instance()->Shutdown();
 				delete SystemThread::Instance();
 			}
 		}

@@ -88,22 +88,9 @@ namespace Magic
 
 		SystemThread::~SystemThread()
 		{
-			Magic_Thread_Mutex_Lock(&m_Mutex);
-			for (auto _auto = m_map_ThreadObject.begin(); _auto != m_map_ThreadObject.end(); _auto++)
-			{
-				if (m_S_T_pThreadObject != &_auto->second)
-					Shutdown(&_auto->second);
-			}
-			Magic_Thread_Mutex_unLock(&m_Mutex);
-
-			IsDeleteThread();
-
 			m_S_pSystemThread = 0;
 			Magic_Thread_Mutex_Destroy(&m_MutexPoolObject);
 			Magic_Thread_Mutex_Destroy(&m_Mutex);
-
-			//发送主线程退出消息
-			MessageHandle(m_S_T_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)m_S_T_pThreadObject);
 		}
 
 		SystemThread* SystemThread::Instance()
@@ -121,6 +108,29 @@ namespace Magic
 				return false;
 
 			return true;
+		}
+
+		void SystemThread::Shutdown() {
+			size_t threadNumber = 0;
+			Magic_Thread_Mutex_Lock(&m_Mutex);
+			threadNumber = m_set_ThreadObject.size();
+			for (auto& a : m_set_ThreadObject) {
+				if (a != m_S_T_pThreadObject) {
+					Shutdown(a);
+				}
+			}
+			Magic_Thread_Mutex_unLock(&m_Mutex);
+
+			while (threadNumber > 1) {
+				ThreadMessageHandle(m_S_T_pThreadObject);
+				Magic_Thread_Mutex_Lock(&m_Mutex);
+				threadNumber = m_set_ThreadObject.size();
+				Magic_Thread_Mutex_unLock(&m_Mutex);
+			}
+
+			MessageHandle(m_S_T_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)m_S_T_pThreadObject);
+
+			SystemThread::Instance()->DeleteThreadMemory(m_S_T_pThreadObject);
 		}
 
 		THREAD_OBJECT SystemThread::Create(const char* _name, ThreadTypeMode _ThreadTypeMode, ThreadMessageMode _ThreadMessageMode, bool _IsNewThread)
@@ -141,6 +151,9 @@ namespace Magic
 					if (_IsNewThread) {
 						if (Magic_Thread_Create(_findTO->second.m_Thread, NULL, ThreadFunction, (void*)(&_findTO->second)))
 							Magic_ResumeThread(_findTO->second.m_Thread);
+					}
+					else {
+						_findTO->second.m_Thread = 0;
 					}
 				}
 			}
@@ -206,11 +219,12 @@ namespace Magic
 				bool _IsHave;
 				Magic_Thread_Mutex_Lock(&m_Mutex);
 				_IsHave = m_set_ThreadObject.find(_auto) != m_set_ThreadObject.end();
+				Magic_THREAD thread = 0;
+				if (_IsHave)
+					thread = _auto->m_Thread;
 				Magic_Thread_Mutex_unLock(&m_Mutex);
 				if (_IsHave)
-				{
-					Magic_Thread_Wait(_auto->m_Thread);
-				}
+					Magic_Thread_Wait(thread);
 			}
 
 			Magic_Thread_SEM_destroy(_pThreadPoolObject->m_queue_SEM);
@@ -413,24 +427,10 @@ namespace Magic
 
 		void SystemThread::Shutdown(THREAD_OBJECT _THREAD_OBJECT)
 		{
-			ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
-
-			if (!_pThreadObject)
-				return;
-			bool _IsHave;
-			Magic_Thread_Mutex_Lock(&m_Mutex);
-			_IsHave = m_set_ThreadObject.find(_pThreadObject) != m_set_ThreadObject.end();
-			Magic_Thread_Mutex_unLock(&m_Mutex);
-			if (!_IsHave)
-				return;
-
-			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
-			_pThreadObject->m_ThreadRunState = THREAD_STOP;
-			if (Magic_InterlockedExchangeAdd((long*)&_pThreadObject->m_ThreadMessageMode, 0) == THREAD_MESSAGE_WAIT)
-				Magic_Thread_SEM_Post(_pThreadObject->m_Queue_SEM);
-			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
-
-
+			SendMessageTo(_THREAD_OBJECT, 0, 0, 
+				[](MM_MESS) {
+					m_S_T_pThreadObject->m_ThreadRunState = THREAD_STOP;
+				});
 		}
 
 		bool SystemThread::TerminateThread(THREAD_OBJECT _THREAD_OBJECT) {
@@ -444,78 +444,59 @@ namespace Magic
 			Magic_Thread_Terminate(_pThreadObject->m_Thread);
 			Magic_Thread_Wait(_pThreadObject->m_Thread);
 
-			Magic_Thread_Mutex_unLock(&m_Mutex);
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
+			Magic_Thread_Mutex_unLock(&m_Mutex);
 
-			//发送释放线程资源的消息
-			Shutdown(_THREAD_OBJECT);
+			//发送到主线程来删除线程对象内存
+			SendMessageTo(GetTHREAD_OBJECT(MAGIC_MAIN_THREAD_NAME), 0, 0,
+				[_pThreadObject](MM_MESS) {
+				SystemThread::Instance()->DeleteThreadMemory(_pThreadObject);
+			});
 
 			return true;
 		}
 
-		Callback_Void SystemThread::UpdataStop(MAP_SRTING_THREADOBJECT::iterator& _auto)
+		void SystemThread::DeleteThreadMemory(ThreadObject* pThreadObject)
 		{
-			if (m_S_T_pThreadObject != &_auto->second && _auto->second.m_ThreadRunState == THREAD_STOP)
-			{
-				std::string key = _auto->first;
-				Magic_THREAD Thread = _auto->second.m_Thread;
-				ThreadObject* threadobject = &_auto->second;
-				Magic_MUTEX _Mutex = _auto->second.m_MessageMutex;
-				Magic_SEM _SEM = _auto->second.m_Queue_SEM;
-				Magic_SEM _Synch_SEM = _auto->second.m_Synch_SEM;
-				return [this, key, Thread, threadobject, _Mutex, _SEM, _Synch_SEM]() {
-					Magic_MUTEX _mutex = _Mutex;
-					Magic_SEM _sem = _SEM;
-					Magic_SEM _synch_sem = _Synch_SEM;
-
-					Magic_Thread_Wait(Thread);
-					Magic_CloseHandle(Thread);
-
-					//缓存关闭完成消息回调
-					std::vector<Callback_Message> vec_MonitorVec;
-					auto _MonitorVec = threadobject->m_umap_MonitorFunction.find(MESSAGE_THREAD_CLOSED);
-					if (_MonitorVec != threadobject->m_umap_MonitorFunction.end()) {
-						vec_MonitorVec = _MonitorVec->second;
-					}
-
-					Magic_Thread_Mutex_Lock(&m_Mutex);
-					m_set_ThreadObject.erase(threadobject);
-					Magic_Thread_Mutex_unLock(&m_Mutex);
-
-					Magic_Thread_Mutex_Lock(&m_Mutex);
-					Magic_Thread_Mutex_Lock(&_mutex);
-					m_map_ThreadObject.erase(key);
-					Magic_Thread_Mutex_unLock(&_mutex);
-					Magic_Thread_Mutex_unLock(&m_Mutex);
-
-					Magic_Thread_SEM_destroy(_synch_sem);
-					Magic_Thread_SEM_destroy(_sem);
-
-					Magic_Thread_Mutex_Destroy(&_mutex);
-
-					for (auto i = vec_MonitorVec.begin(); i != vec_MonitorVec.end(); i++) {
-						i->operator()(MESSAGE_THREAD_CLOSED, (long long)threadobject);
-					}
-				};
+			if (!pThreadObject) {
+				return;
 			}
-			else {
-				return 0;
-			}
-		}
 
-		void SystemThread::IsDeleteThread() {
-			std::vector<Callback_Void> vec_Delete_Callback;
+			std::string key = pThreadObject->m_Name;
+			Magic_THREAD Thread = pThreadObject->m_Thread;
+			Magic_MUTEX _Mutex = pThreadObject->m_MessageMutex;
+			Magic_SEM _SEM = pThreadObject->m_Queue_SEM;
+			Magic_SEM _Synch_SEM = pThreadObject->m_Synch_SEM;
+
+			if (Thread) {
+				//Magic_Thread_Wait(Thread);
+				Magic_CloseHandle(Thread);
+			}
+
+			//缓存关闭完成消息回调
+			std::vector<Callback_Message> vec_MonitorVec;
+			auto _MonitorVec = pThreadObject->m_umap_MonitorFunction.find(MESSAGE_THREAD_CLOSED);
+			if (_MonitorVec != pThreadObject->m_umap_MonitorFunction.end()) {
+				vec_MonitorVec = _MonitorVec->second;
+			}
+
 			Magic_Thread_Mutex_Lock(&m_Mutex);
-			for (auto _auto = m_map_ThreadObject.begin(); _auto != m_map_ThreadObject.end(); _auto++) {
-				auto a = UpdataStop(_auto);
-				if (a) {
-					vec_Delete_Callback.push_back(a);
-				}
-			}
+			m_set_ThreadObject.erase(pThreadObject);
 			Magic_Thread_Mutex_unLock(&m_Mutex);
 
-			for (auto& a : vec_Delete_Callback) {
-				a();
+			Magic_Thread_Mutex_Lock(&m_Mutex);
+			Magic_Thread_Mutex_Lock(&_Mutex);
+			m_map_ThreadObject.erase(key);
+			Magic_Thread_Mutex_unLock(&_Mutex);
+			Magic_Thread_Mutex_unLock(&m_Mutex);
+
+			Magic_Thread_SEM_destroy(_Synch_SEM);
+			Magic_Thread_SEM_destroy(_SEM);
+
+			Magic_Thread_Mutex_Destroy(&_Mutex);
+
+			for (auto i = vec_MonitorVec.begin(); i != vec_MonitorVec.end(); i++) {
+				i->operator()(MESSAGE_THREAD_CLOSED, (long long)pThreadObject);
 			}
 		}
 
@@ -523,7 +504,6 @@ namespace Magic
 		{
 			do
 			{
-				IsDeleteThread();
 				ThreadMessageHandle(m_S_T_pThreadObject);
 				ThreadHandle(m_S_T_pThreadObject);
 			} while (m_S_T_pThreadObject->m_ThreadRunState != THREAD_STOP);
@@ -543,11 +523,16 @@ namespace Magic
 			{
 				ThreadMessageHandle(_pThreadObject);
 				ThreadHandle(_pThreadObject);
+				Magic_MSleep(10);
 			} while (_pThreadObject->m_ThreadRunState != THREAD_STOP);
 
 			MessageHandle(_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)_pThreadObject);
 
-			_pThreadObject->m_ThreadRunState = THREAD_STOP;
+			//发送到主线程来删除线程对象内存
+			m_S_pSystemThread->SendMessageTo(m_S_pSystemThread->GetTHREAD_OBJECT(MAGIC_MAIN_THREAD_NAME), 0, 0,
+				[_pThreadObject](MM_MESS) {
+					SystemThread::Instance()->DeleteThreadMemory(_pThreadObject);
+				});
 			return arcoss_return(0);
 		}
 

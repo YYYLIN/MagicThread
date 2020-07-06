@@ -108,6 +108,8 @@ namespace Magic
 
 			bool Initialize(ThreadMessageMode threadmessagemode);
 
+			void Shutdown();
+
 			THREAD_OBJECT Create(const char* _name, ThreadTypeMode _ThreadTypeMode, ThreadMessageMode _ThreadMessageMode, bool _IsNewThread);
 
 			THREAD_POOL_OBJECT CreatePool(const char* _name, unsigned int _ThreadNumber);
@@ -151,8 +153,7 @@ namespace Magic
 			bool TerminateThread(THREAD_OBJECT _THREAD_OBJECT);
 
 		protected:
-			Callback_Void UpdataStop(MAP_SRTING_THREADOBJECT::iterator& _auto);
-			void IsDeleteThread();
+			void DeleteThreadMemory(ThreadObject* pThreadObject);
 		public:
 			void Updata();
 		private:
