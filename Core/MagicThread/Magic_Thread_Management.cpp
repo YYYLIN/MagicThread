@@ -183,10 +183,10 @@ namespace Magic
 					THREAD_OBJECT _THREAD_OBJECT = Create(_text, THREAD_LOOP_RUN, THREAD_MESSAGE_WAIT, true);
 					SendMessageTo(_THREAD_OBJECT, 0, 0,
 						[_THREAD_POOL_OBJECT](MESSAGE_TYPE, MESSAGE)
-						{
-							m_S_T_pThreadPoolObject = (ThreadPoolObject*)_THREAD_POOL_OBJECT;
-							Magic_InterlockedExchange((long*)&m_S_T_pThreadObject->m_ThreadMessageMode, THREAD_MESSAGE_NO_WAIT);
-						});
+					{
+						m_S_T_pThreadPoolObject = (ThreadPoolObject*)_THREAD_POOL_OBJECT;
+						Magic_InterlockedExchange((long*)&m_S_T_pThreadObject->m_ThreadMessageMode, THREAD_MESSAGE_NO_WAIT);
+					});
 
 					MonitorThread(_THREAD_OBJECT, BindClassFunctionObject(&ThreadPoolObject::Updata, &_findTO->second));
 					if (_THREAD_OBJECT)
@@ -239,9 +239,9 @@ namespace Magic
 		bool SystemThread::SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time) {
 			return this->SendMessageTo(_THREAD_OBJECT, 0, 0,
 				[time, _THREAD_OBJECT](MM_MESS) {
-					ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
-					_pThreadObject->m_ThreadWaitTime = time;
-				});
+				ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
+				_pThreadObject->m_ThreadWaitTime = time;
+			});
 		}
 
 		bool SystemThread::SetMode(THREAD_OBJECT _THREAD_OBJECT, ThreadMessageMode _ThreadMessageMode) {
@@ -252,7 +252,7 @@ namespace Magic
 			bool _IsHave;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			_IsHave = m_set_ThreadObject.find(_pThreadObject) != m_set_ThreadObject.end();
-			if(_IsHave)
+			if (_IsHave)
 				Magic_InterlockedExchange((long*)&_pThreadObject->m_ThreadMessageMode, _ThreadMessageMode);
 			Magic_Thread_Mutex_unLock(&m_Mutex);
 
@@ -264,7 +264,7 @@ namespace Magic
 
 			return SendMessageTo(_THREAD_OBJECT, 0, 0, [_BufferCallback](MESSAGE_TYPE _MessageType, MESSAGE _Message) {
 				m_S_T_pThreadObject->m_vec_Callback.push_back(_BufferCallback);
-				});
+			});
 		}
 
 		bool SystemThread::MonitorThreadPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, const Callback_Void& _CallBack) {
@@ -273,7 +273,7 @@ namespace Magic
 
 			return SendMessageToPool(_THREAD_POOL_OBJECT, 0, 0, [_BufferCallback](MESSAGE_TYPE _MessageType, MESSAGE _Message) {
 				m_S_T_pThreadObject->m_vec_Callback.push_back(_BufferCallback);
-				});
+			});
 		}
 
 		bool SystemThread::MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)
@@ -286,7 +286,7 @@ namespace Magic
 					_MointorVec->second.push_back(_BufferCallback);
 				else
 					m_S_T_pThreadObject->m_umap_MonitorFunction.insert(std::make_pair(_MessageType, std::vector<Callback_Message>({ _BufferCallback })));
-				});
+			});
 		}
 
 		bool SystemThread::MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)
@@ -299,7 +299,7 @@ namespace Magic
 					_MointorVec->second.push_back(_BufferCallback);
 				else
 					m_S_T_pThreadObject->m_umap_MonitorFunction.insert(std::make_pair(_MessageType, std::vector<Callback_Message>({ _BufferCallback })));
-				});
+			});
 		}
 
 		bool SystemThread::SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
@@ -430,10 +430,10 @@ namespace Magic
 
 		void SystemThread::Shutdown(THREAD_OBJECT _THREAD_OBJECT)
 		{
-			SendMessageTo(_THREAD_OBJECT, 0, 0, 
+			SendMessageTo(_THREAD_OBJECT, 0, 0,
 				[](MM_MESS) {
-					m_S_T_pThreadObject->m_ThreadRunState = THREAD_STOP;
-				});
+				m_S_T_pThreadObject->m_ThreadRunState = THREAD_STOP;
+			});
 			//删除搜索缓存
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			m_set_ThreadObject.erase((ThreadObject*)_THREAD_OBJECT);
@@ -517,6 +517,9 @@ namespace Magic
 			do
 			{
 				ThreadMessageHandle(m_S_T_pThreadObject);
+				if (m_S_T_pThreadObject->m_ThreadRunState == THREAD_STOP) {
+					break;
+				}
 				ThreadHandle(m_S_T_pThreadObject);
 			} while (m_S_T_pThreadObject->m_ThreadRunState != THREAD_STOP);
 		}
@@ -534,8 +537,10 @@ namespace Magic
 			do
 			{
 				ThreadMessageHandle(_pThreadObject);
+				if (m_S_T_pThreadObject->m_ThreadRunState == THREAD_STOP) {
+					break;
+				}
 				ThreadHandle(_pThreadObject);
-				Magic_MSleep(10);
 			} while (_pThreadObject->m_ThreadRunState != THREAD_STOP);
 
 			MessageHandle(_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)_pThreadObject);
