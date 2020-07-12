@@ -54,8 +54,9 @@ namespace Magic
 			long long m_Message;
 			Callback_Message m_CallBack;
 			ThreadObject* m_pThreadObject;
+			unsigned int messageMode;
 			Message();
-			Message(const unsigned int& _MessageType, const long long& _Message, const Callback_Message& _CallBack, ThreadObject* _pThreadObject);
+			Message(const unsigned int& _MessageType, const long long& _Message, const Callback_Message& _CallBack, ThreadObject* _pThreadObject, unsigned int _messageMode);
 		};
 
 		struct ThreadObject
