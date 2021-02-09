@@ -70,6 +70,7 @@ namespace Magic
 			ThreadMessageMode m_ThreadMessageMode;
 			ThreadRunState m_ThreadRunState;
 			unsigned long m_ThreadWaitTime;
+			unsigned long long m_ThreadObjectId;
 
 			std::vector<Message> m_queue_Message;
 			std::vector<Message> m_Last_queue_Message;
@@ -89,7 +90,7 @@ namespace Magic
 			void Updata();
 		public:
 			std::string m_Name;
-			std::vector<ThreadObject*> m_vec_ThreadObject;
+			std::vector<THREAD_OBJECT> m_vec_ThreadObject;
 
 			std::queue<Message> m_queue_Message;
 
@@ -135,13 +136,13 @@ namespace Magic
 
 			bool SendMessageToPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch = false);
 
-			THREAD_OBJECT GetNowTHREAD_OBJECT() { return (void*)m_S_T_pThreadObject; }
+			THREAD_OBJECT GetNowTHREAD_OBJECT() { return m_S_T_ThreadObjectId; }
 
 			THREAD_POOL_OBJECT GetNowTHREAD_POOL_OBJECT() { return (void*)m_S_T_pThreadPoolObject; }
 
 			THREAD_OBJECT GetTHREAD_OBJECT(const char* _name);
 
-			THREAD_OBJECT GetTHREAD_POOL_OBJECT(const char* _name);
+			THREAD_POOL_OBJECT GetTHREAD_POOL_OBJECT(const char* _name);
 
 			void GetTHREAD_OBJECT_Name(THREAD_OBJECT _THREAD_OBJECT, char* _name, int _size);
 
@@ -162,13 +163,14 @@ namespace Magic
 			static arcoss ThreadFunction(void* _data);
 		private:
 			MAP_SRTING_THREADOBJECT m_map_ThreadObject;
-			std::set<ThreadObject*> m_set_ThreadObject;
+			std::map<unsigned long long, ThreadObject*> m_set_ThreadObject;
 
 			MAP_SRTING_THREADPOOLOBJECT m_map_Srting_ThreadPoolObject;
 
 			Magic_MUTEX m_Mutex, m_MutexPoolObject;
 
 			static S_THREAD ThreadObject* m_S_T_pThreadObject;
+			static S_THREAD THREAD_OBJECT m_S_T_ThreadObjectId;
 			static S_THREAD ThreadPoolObject* m_S_T_pThreadPoolObject;
 
 			static SystemThread* m_S_pSystemThread;

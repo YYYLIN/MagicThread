@@ -78,6 +78,7 @@ namespace Magic
 		}
 
 		S_THREAD ThreadObject* SystemThread::m_S_T_pThreadObject = 0;
+		S_THREAD THREAD_OBJECT SystemThread::m_S_T_ThreadObjectId = 0;
 		S_THREAD ThreadPoolObject* SystemThread::m_S_T_pThreadPoolObject = 0;
 		SystemThread* SystemThread::m_S_pSystemThread = 0;
 
@@ -103,9 +104,11 @@ namespace Magic
 			Magic_Thread_Mutex_Init(&m_Mutex);
 			Magic_Thread_Mutex_Init(&m_MutexPoolObject);
 
-			m_S_T_pThreadObject = (ThreadObject*)Create(MAGIC_MAIN_THREAD_NAME, THREAD_LOOP_RUN, threadmessagemode, false);
-			if (!m_S_T_pThreadObject)
+			m_S_T_ThreadObjectId = Create(MAGIC_MAIN_THREAD_NAME, THREAD_LOOP_RUN, threadmessagemode, false);
+			if (!m_S_T_ThreadObjectId)
 				return false;
+
+			m_S_T_pThreadObject = m_set_ThreadObject.find(m_S_T_ThreadObjectId)->second;
 
 			return true;
 		}
@@ -115,8 +118,8 @@ namespace Magic
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			threadNumber = m_map_ThreadObject.size();
 			for (auto& a : m_map_ThreadObject) {
-				if (&a.second != m_S_T_pThreadObject) {
-					Shutdown(&a.second);
+				if (a.second.m_ThreadObjectId != m_S_T_pThreadObject->m_ThreadObjectId) {
+					Shutdown(a.second.m_ThreadObjectId);
 				}
 			}
 			Magic_Thread_Mutex_unLock(&m_Mutex);
@@ -143,8 +146,10 @@ namespace Magic
 				auto _findTO = m_map_ThreadObject.find(_name);
 				if (_findTO != m_map_ThreadObject.end())
 				{
-					_THREAD_OBJECT = &_findTO->second;
-					m_set_ThreadObject.insert(&_findTO->second);
+					static unsigned long long s_ThreadObjectId = 0;
+					_THREAD_OBJECT = ++s_ThreadObjectId;
+					m_set_ThreadObject.insert(std::make_pair(_THREAD_OBJECT, &_findTO->second));
+					_findTO->second.m_ThreadObjectId = _THREAD_OBJECT;
 					Magic_Thread_Mutex_Init(&_findTO->second.m_MessageMutex);
 					Magic_Thread_SEM_init(_findTO->second.m_Queue_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
 					Magic_Thread_SEM_init(_findTO->second.m_Synch_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
@@ -190,7 +195,7 @@ namespace Magic
 
 					MonitorThread(_THREAD_OBJECT, BindClassFunctionObject(&ThreadPoolObject::Updata, &_findTO->second));
 					if (_THREAD_OBJECT)
-						_findTO->second.m_vec_ThreadObject.push_back((ThreadObject*)_THREAD_OBJECT);
+						_findTO->second.m_vec_ThreadObject.push_back(_THREAD_OBJECT);
 				}
 			}
 			Magic_Thread_Mutex_unLock(&m_MutexPoolObject);
@@ -204,27 +209,24 @@ namespace Magic
 			if (!_pThreadPoolObject)
 				return;
 
+			std::vector<Magic_THREAD> vec_WaitThread;
+
 			Magic_Thread_Mutex_Lock(&m_MutexPoolObject);
 
 			Magic_Thread_Mutex_Lock(&_pThreadPoolObject->m_MessageMutex);
 			for (auto _auto : _pThreadPoolObject->m_vec_ThreadObject)
 			{
-				Shutdown(_auto);
+				auto autofind = m_set_ThreadObject.find(_auto);
+				vec_WaitThread.push_back(autofind->second->m_Thread);
+				Shutdown(autofind->second->m_ThreadObjectId);
 				Magic_Thread_SEM_Post(_pThreadPoolObject->m_queue_SEM);
 			}
 			Magic_Thread_Mutex_unLock(&_pThreadPoolObject->m_MessageMutex);
 
-			for (auto _auto : _pThreadPoolObject->m_vec_ThreadObject)
+			for (auto Thread : vec_WaitThread)
 			{
-				bool _IsHave;
-				Magic_Thread_Mutex_Lock(&m_Mutex);
-				_IsHave = m_set_ThreadObject.find(_auto) != m_set_ThreadObject.end();
-				Magic_THREAD thread = 0;
-				if (_IsHave)
-					thread = _auto->m_Thread;
-				Magic_Thread_Mutex_unLock(&m_Mutex);
-				if (_IsHave)
-					Magic_Thread_Wait(thread);
+				if (Thread)
+					Magic_Thread_Wait(Thread);
 			}
 
 			Magic_Thread_SEM_destroy(_pThreadPoolObject->m_queue_SEM);
@@ -238,21 +240,20 @@ namespace Magic
 
 		bool SystemThread::SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time) {
 			return this->SendMessageTo(_THREAD_OBJECT, 0, 0,
-				[time, _THREAD_OBJECT](MM_MESS) {
-					ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
-					_pThreadObject->m_ThreadWaitTime = time;
+				[time](MM_MESS) {
+					m_S_T_pThreadObject->m_ThreadWaitTime = time;
 				});
 		}
 
 		bool SystemThread::SetMode(THREAD_OBJECT _THREAD_OBJECT, ThreadMessageMode _ThreadMessageMode) {
-
-			ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
-			if (!_pThreadObject)
+			if (!_THREAD_OBJECT)
 				return false;
-			bool _IsHave;
+			bool _IsHave = false;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
-			_IsHave = m_set_ThreadObject.find(_pThreadObject) != m_set_ThreadObject.end();
-			if (_IsHave) {
+			auto autofind = m_set_ThreadObject.find(_THREAD_OBJECT);
+			if (autofind != m_set_ThreadObject.end()) {
+				ThreadObject* _pThreadObject = autofind->second;
+				_IsHave = true;
 				ThreadMessageMode threadmessagemode = (ThreadMessageMode)Magic_InterlockedExchange((long*)&_pThreadObject->m_ThreadMessageMode, _ThreadMessageMode);
 				if (threadmessagemode == THREAD_MESSAGE_WAIT) {
 					Magic_Thread_SEM_Post(_pThreadObject->m_Queue_SEM);
@@ -309,14 +310,16 @@ namespace Magic
 
 		bool SystemThread::SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
 		{
-			ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
-			if (!_pThreadObject)
+			ThreadObject* _pThreadObject = 0;
+			if (!_THREAD_OBJECT)
 				return false;
-			bool _IsHave;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
-			_IsHave = m_set_ThreadObject.find(_pThreadObject) != m_set_ThreadObject.end();
+			auto autofind = m_set_ThreadObject.find(_THREAD_OBJECT);
+			if (autofind != m_set_ThreadObject.end()) {
+				_pThreadObject = autofind->second;
+			}
 			Magic_Thread_Mutex_unLock(&m_Mutex);
-			if (!_IsHave)
+			if (!_pThreadObject)
 				return false;
 			//理论上当在这个位置_pThreadObject内存被删除时，后面的代码会发生线程安全问题。
 			//但是当m_set_ThreadObject中的对象被删除后，还会调用一次SendMessageTo。所以按时间比例来说，当前函数运行完成时。_pThreadObject还不会到达删除位置。
@@ -346,7 +349,7 @@ namespace Magic
 
 		bool SystemThread::SendMessageTo(MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
 		{
-			return SendMessageTo(m_S_T_pThreadObject, _MessageType, _Message, _CallBack, _Synch);
+			return SendMessageTo(m_S_T_ThreadObjectId, _MessageType, _Message, _CallBack, _Synch);
 		}
 
 		bool SystemThread::SendMessageToPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
@@ -379,13 +382,13 @@ namespace Magic
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			auto _findTO = m_map_ThreadObject.find(_name);
 			if (_findTO != m_map_ThreadObject.end())
-				_THREAD_OBJECT = &_findTO->second;
+				_THREAD_OBJECT = _findTO->second.m_ThreadObjectId;
 			Magic_Thread_Mutex_unLock(&m_Mutex);
 
 			return _THREAD_OBJECT;
 		}
 
-		THREAD_OBJECT SystemThread::GetTHREAD_POOL_OBJECT(const char* _name)
+		THREAD_POOL_OBJECT SystemThread::GetTHREAD_POOL_OBJECT(const char* _name)
 		{
 			THREAD_POOL_OBJECT _THREAD_POOL_OBJECT = 0;
 			Magic_Thread_Mutex_Lock(&m_MutexPoolObject);
@@ -399,15 +402,12 @@ namespace Magic
 
 		void SystemThread::GetTHREAD_OBJECT_Name(THREAD_OBJECT _THREAD_OBJECT, char* _name, int _size)
 		{
-			ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
-
-			if (!_pThreadObject)
+			if (!_THREAD_OBJECT)
 				return;
-			bool _IsHave;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
-			_IsHave = m_set_ThreadObject.find(_pThreadObject) != m_set_ThreadObject.end();
-
-			if (_IsHave) {
+			auto autofind = m_set_ThreadObject.find(_THREAD_OBJECT);
+			if (autofind != m_set_ThreadObject.end()) {
+				ThreadObject* _pThreadObject = autofind->second;
 				Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
 				Magic_strcpy_s(_name, _size, _pThreadObject->m_Name.c_str());
 				Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
@@ -441,19 +441,26 @@ namespace Magic
 				});
 			//删除搜索缓存
 			Magic_Thread_Mutex_Lock(&m_Mutex);
-			m_set_ThreadObject.erase((ThreadObject*)_THREAD_OBJECT);
+			m_set_ThreadObject.erase(_THREAD_OBJECT);
 			Magic_Thread_Mutex_unLock(&m_Mutex);
 		}
 
 		bool SystemThread::TerminateThread(THREAD_OBJECT _THREAD_OBJECT) {
-			ThreadObject* _pThreadObject = (ThreadObject*)_THREAD_OBJECT;
-			if (m_S_T_pThreadObject == _pThreadObject) {
+			ThreadObject* _pThreadObject = 0;
+			if (m_S_T_ThreadObjectId == _THREAD_OBJECT) { // 不能在当前线程强制结束自己。暂时不能自杀
 				return false;
 			}
 			//删除搜索缓存
 			Magic_Thread_Mutex_Lock(&m_Mutex);
-			m_set_ThreadObject.erase(_pThreadObject);
+			auto autofind = m_set_ThreadObject.find(_THREAD_OBJECT);
+			if (autofind != m_set_ThreadObject.end()) {
+				_pThreadObject = autofind->second;
+				m_set_ThreadObject.erase(autofind);
+			}
 			Magic_Thread_Mutex_unLock(&m_Mutex);
+			if (!_pThreadObject) {
+				return false;
+			}
 
 			Magic_Thread_Mutex_Lock(&m_Mutex);
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
@@ -533,6 +540,7 @@ namespace Magic
 		{
 			ThreadObject* _pThreadObject = (ThreadObject*)_data;
 			m_S_T_pThreadObject = _pThreadObject;
+			m_S_T_ThreadObjectId = _pThreadObject->m_ThreadObjectId;
 
 			//如果只运行一次，那么直接关闭循环
 			if (_pThreadObject->m_ThreadTypeMode == THREAD_RUN_ONCE) {

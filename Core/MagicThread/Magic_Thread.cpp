@@ -148,7 +148,7 @@ namespace Magic
 		}
 
 		bool MonitorThreadMessage(const char* _name, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack) {
-			return SystemThread::Instance()->MonitorThreadMessage(SystemThread::Instance()->GetTHREAD_POOL_OBJECT(_name), _MessageType, _CallBack);
+			return SystemThread::Instance()->MonitorThreadMessage(SystemThread::Instance()->GetTHREAD_OBJECT(_name), _MessageType, _CallBack);
 		}
 
 		bool MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)

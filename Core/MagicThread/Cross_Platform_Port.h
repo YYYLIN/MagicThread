@@ -60,7 +60,7 @@
 #define Magic_ResumeThread(a)						ResumeThread(a)
 #define Magic_CloseHandle(a)						CloseHandle(a)
 #define Magic_Thread_Wait(a)						WaitForSingleObject(a, INFINITE)
-#define Magic_Thread_Terminate(a)					TerminateThread(a)
+#define Magic_Thread_Terminate(a)					::TerminateThread(a, -1)
 
 /*
 *功能：创建共享消息

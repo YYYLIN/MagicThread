@@ -84,7 +84,7 @@ namespace Magic
 			THREAD_MESSAGE_WAIT			//如果没有消息，着等待消息接受后再运行
 		};
 
-		typedef void* THREAD_OBJECT;
+		typedef unsigned long long THREAD_OBJECT;
 		typedef void* THREAD_POOL_OBJECT;
 		typedef std::function<void(MESSAGE_TYPE, MESSAGE)> Callback_Message;
 		typedef std::function<void(void)> Callback_Void;
