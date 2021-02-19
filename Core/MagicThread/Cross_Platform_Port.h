@@ -117,7 +117,7 @@ typedef unsigned int								Magic_SOCKSET;
 #elif __linux__
 #define Magic_Sprintf_s snprintf
 
-#define Magic_Thread_Create(f,b,c,d,e)				do{e = pthread_create(&f,b,c,d)}while(0)
+#define Magic_Thread_Create(f,b,c,d,e)				do{e = pthread_create(&f,b,c,d);}while(0)
 #define Magic_ResumeThread(a)
 #define Magic_CloseHandle(a)
 #define Magic_Thread_Wait(a)						pthread_join(a, NULL)
