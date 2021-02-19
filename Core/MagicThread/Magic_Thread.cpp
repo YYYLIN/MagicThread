@@ -32,6 +32,14 @@ namespace Magic
 {
 	namespace Management
 	{
+		int GetLastError() {
+			return SystemThread::Instance()->GetLastError();
+		}
+
+		unsigned long long GetThreadSize() {
+			return SystemThread::Instance()->GetThreadSize();
+		}
+
 		bool CreateThreadManagement(ThreadMessageMode threadmessagemode)
 		{
 			if (!SystemThread::Instance())

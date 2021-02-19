@@ -91,6 +91,26 @@ namespace Magic
 
 		/*
 		*功能：
+		*	获取当前线程上一次的错误数据
+		*参数：
+		*	空
+		*返回值：
+		*	int 错误值
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT int GetLastError();
+
+		/*
+		*功能：
+		*	获取线程管理中的线程总数量
+		*参数：
+		*	空
+		*返回值：
+		*	unsigned long long = 数量
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT unsigned long long GetThreadSize();
+
+		/*
+		*功能：
 		*	创建线程管理器
 		*参数：
 		*	空

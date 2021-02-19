@@ -80,6 +80,7 @@ namespace Magic
 		S_THREAD ThreadObject* SystemThread::m_S_T_pThreadObject = 0;
 		S_THREAD THREAD_OBJECT SystemThread::m_S_T_ThreadObjectId = 0;
 		S_THREAD ThreadPoolObject* SystemThread::m_S_T_pThreadPoolObject = 0;
+		S_THREAD int SystemThread::m_S_T_Error = 0;
 		SystemThread* SystemThread::m_S_pSystemThread = 0;
 
 		SystemThread::SystemThread()
@@ -140,6 +141,7 @@ namespace Magic
 		{
 			THREAD_OBJECT _THREAD_OBJECT = 0;
 			Magic_Thread_Mutex_Lock(&m_Mutex);
+			m_S_T_Error = 0;
 			if (m_map_ThreadObject.find(_name) == m_map_ThreadObject.end()) {
 				m_map_ThreadObject.insert(std::make_pair(_name, ThreadObject(_ThreadTypeMode, THREAD_STATE_RUN, _name, _ThreadMessageMode)));
 
@@ -154,8 +156,18 @@ namespace Magic
 					Magic_Thread_SEM_init(_findTO->second.m_Queue_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
 					Magic_Thread_SEM_init(_findTO->second.m_Synch_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
 					if (_IsNewThread) {
-						if (Magic_Thread_Create(_findTO->second.m_Thread, NULL, ThreadFunction, (void*)(&_findTO->second)))
-							Magic_ResumeThread(_findTO->second.m_Thread);
+						int error;
+						Magic_Thread_Create(_findTO->second.m_Thread, NULL, ThreadFunction, (void*)(&_findTO->second), error);
+						if (error > 0) {
+							// 如果创建失败,删除之前创建的内容
+							Magic_Thread_SEM_destroy(_findTO->second.m_Synch_SEM);
+							Magic_Thread_SEM_destroy(_findTO->second.m_Queue_SEM);
+							Magic_Thread_Mutex_Destroy(&_findTO->second.m_MessageMutex);
+							m_set_ThreadObject.erase(_THREAD_OBJECT);
+							m_map_ThreadObject.erase(_name);
+							m_S_T_Error = error;
+							_THREAD_OBJECT = 0;
+						}
 					}
 					else {
 						_findTO->second.m_Thread = 0;
@@ -474,6 +486,18 @@ namespace Magic
 			DeleteThreadMessage(_pThreadObject);
 
 			return true;
+		}
+
+		int SystemThread::GetLastError() {
+			return m_S_T_Error;
+		}
+
+		unsigned long long SystemThread::GetThreadSize() {
+			unsigned long long size = 0;
+			Magic_Thread_Mutex_Lock(&m_Mutex);
+			size = m_set_ThreadObject.size();
+			Magic_Thread_Mutex_unLock(&m_Mutex);
+			return size;
 		}
 
 		void SystemThread::DeleteThreadMessage(ThreadObject* pThreadObject) {

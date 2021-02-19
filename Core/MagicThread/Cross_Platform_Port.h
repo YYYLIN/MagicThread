@@ -56,7 +56,7 @@
 *	d = 线程参数
 *返回值：如果等于非零值成功
 */
-#define Magic_Thread_Create(f,b,c,d)				f = CreateThread(NULL, b, c, d, 0, NULL)
+#define Magic_Thread_Create(f,b,c,d,e)			do{f = CreateThread(NULL, b, c, d, 0, NULL);e = f ? 0: GetLastError();}while(0)
 #define Magic_ResumeThread(a)						ResumeThread(a)
 #define Magic_CloseHandle(a)						CloseHandle(a)
 #define Magic_Thread_Wait(a)						WaitForSingleObject(a, INFINITE)
@@ -77,7 +77,7 @@
 #define Magic_Thread_SEM_Wait(a)					WaitForSingleObject(a, INFINITE)
 #define Magic_Thread_SEM_Wait_Time(a,t)				do{WaitForSingleObject(a, t);}while(0)
 #define Magic_Thread_SEM_Post(a)					ReleaseSemaphore(a, 1, NULL)
-#define Magic_Thread_SEM_destroy(a)					CloseHandle(a)
+#define Magic_Thread_SEM_destroy(a)					CloseHandle(a)			
 #define Magic_Thread_Mutex_Lock(a)					EnterCriticalSection(a)
 #define Magic_Thread_Mutex_unLock(a)				LeaveCriticalSection(a)
 #define Magic_Thread_Mutex_Init(a)					InitializeCriticalSection(a)
@@ -117,7 +117,7 @@ typedef unsigned int								Magic_SOCKSET;
 #elif __linux__
 #define Magic_Sprintf_s snprintf
 
-#define Magic_Thread_Create(f,b,c,d)				(pthread_create(&f,b,c,d) == 0)
+#define Magic_Thread_Create(f,b,c,d,e)				do{e = pthread_create(&f,b,c,d)}while(0)
 #define Magic_ResumeThread(a)
 #define Magic_CloseHandle(a)
 #define Magic_Thread_Wait(a)						pthread_join(a, NULL)
@@ -139,7 +139,7 @@ typedef unsigned int								Magic_SOCKSET;
 
 
 #define Magic_Thread_SEM_Post(a)					sem_post(&a)
-#define Magic_Thread_SEM_destroy(a)					sem_destroy(&a)
+#define Magic_Thread_SEM_destroy(a)					sem_destroy(&a)			
 #define Magic_Thread_Mutex_Lock(a)					pthread_mutex_lock(a)
 #define Magic_Thread_Mutex_unLock(a)				pthread_mutex_unlock(a)
 #define Magic_Thread_Mutex_Init(a)					pthread_mutex_init(a, NULL)

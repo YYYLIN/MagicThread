@@ -154,6 +154,10 @@ namespace Magic
 
 			bool TerminateThread(THREAD_OBJECT _THREAD_OBJECT);
 
+			int GetLastError();
+
+			unsigned long long GetThreadSize();
+
 		protected:
 			void DeleteThreadMessage(ThreadObject* pThreadObject);
 			void DeleteThreadMemory(ThreadObject* pThreadObject);
@@ -172,6 +176,7 @@ namespace Magic
 			static S_THREAD ThreadObject* m_S_T_pThreadObject;
 			static S_THREAD THREAD_OBJECT m_S_T_ThreadObjectId;
 			static S_THREAD ThreadPoolObject* m_S_T_pThreadPoolObject;
+			static S_THREAD int m_S_T_Error;
 
 			static SystemThread* m_S_pSystemThread;
 		};
