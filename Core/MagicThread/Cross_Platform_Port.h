@@ -119,7 +119,7 @@ typedef unsigned int								Magic_SOCKSET;
 
 #define Magic_Thread_Create(f,b,c,d,e)				do{e = pthread_create(&f,b,c,d);}while(0)
 #define Magic_ResumeThread(a)
-#define Magic_CloseHandle(a)
+#define Magic_CloseHandle(a)						pthread_join(a, NULL)
 #define Magic_Thread_Wait(a)						pthread_join(a, NULL)
 #define Magic_Thread_Terminate(a)					pthread_cancel(a)
 #define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		(sem_init(&a,(int)f,g) == 0)
