@@ -14,7 +14,8 @@ IF(UNIX)
 	ENDIF(RELEASE_MODE)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} "/usr/local")
 #ARM版优化指令
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -optimize-sibling-calls -fsigned-char")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -fsigned-char")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -optimize-sibling-calls -fsigned-char")
 ENDIF(UNIX)
 
 #像vs中添加UTF-8编译
