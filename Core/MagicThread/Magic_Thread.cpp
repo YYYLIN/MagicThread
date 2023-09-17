@@ -159,6 +159,18 @@ namespace Magic
 			return SystemThread::Instance()->MonitorThreadMessage(SystemThread::Instance()->GetTHREAD_OBJECT(_name), _MessageType, _CallBack);
 		}
 
+		bool MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const Callback_Message_Key& _CallBack, WAIT_MESSAGE* waitMessage) {
+			return SystemThread::Instance()->MonitorThreadMessage(_THREAD_OBJECT, key, _CallBack, waitMessage);
+		}
+
+		bool MonitorThreadMessage(const char* _name, const std::string& key, const Callback_Message_Key& _CallBack, WAIT_MESSAGE* waitMessage) {
+			return SystemThread::Instance()->MonitorThreadMessage(SystemThread::Instance()->GetTHREAD_OBJECT(_name), key, _CallBack, waitMessage);
+		}
+
+		unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout) {
+			return SystemThread::Instance()->WaitMessage(waitMessage, timeout);
+		}
+
 		bool MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)
 		{
 			return SystemThread::Instance()->MonitorThreadPoolMessage(_THREAD_POOL_OBJECT, _MessageType, _CallBack);
@@ -170,17 +182,29 @@ namespace Magic
 
 		bool SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
 		{
-			return SystemThread::Instance()->SendMessageTo(_THREAD_OBJECT, _MessageType, _Message, _CallBack, _Synch);
+			return SystemThread::Instance()->SendMessageTo(_THREAD_OBJECT, _MessageType, _Message, "", nullptr, _CallBack, _Synch);
 		}
 
 		bool SendMessageTo(const char* _name, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
 		{
-			return SystemThread::Instance()->SendMessageTo(SystemThread::Instance()->GetTHREAD_OBJECT(_name), _MessageType, _Message, _CallBack, _Synch);
+			return SystemThread::Instance()->SendMessageTo(SystemThread::Instance()->GetTHREAD_OBJECT(_name), _MessageType, _Message, "", nullptr, _CallBack, _Synch);
 		}
 
 		bool SendMessageTo(MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack)
 		{
 			return SystemThread::Instance()->SendMessageTo(_MessageType, _Message, _CallBack);
+		}
+
+		bool SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer) {
+			return SystemThread::Instance()->SendMessageTo(_THREAD_OBJECT, key, messageTransfer);
+		}
+
+		bool SendMessageTo(const char* _name, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer) {
+			return SystemThread::Instance()->SendMessageTo(SystemThread::Instance()->GetTHREAD_OBJECT(_name), key, messageTransfer);
+		}
+
+		bool SendMessageTo(const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer) {
+			return SystemThread::Instance()->SendMessageTo(SystemThread::Instance()->GetNowTHREAD_OBJECT(), key, messageTransfer);
 		}
 
 		bool SendMessageToPool(const char* _name, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)

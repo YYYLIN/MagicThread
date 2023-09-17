@@ -43,6 +43,10 @@
 #include <string.h>
 #endif
 
+#define Magic_SEM_Wait_ERROR      2
+#define Magic_SEM_Wait_TIMEOUT    1
+#define Magic_SEM_Wait_OK         0
+
 #ifdef WIN32
 #define Magic_Sprintf_s sprintf_s
 #define Magic_CLOCK()	clock()
@@ -75,7 +79,9 @@
 */
 #define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		a = CreateSemaphore(b,c,d,e)
 #define Magic_Thread_SEM_Wait(a)					WaitForSingleObject(a, INFINITE)
-#define Magic_Thread_SEM_Wait_Time(a,t)				do{WaitForSingleObject(a, t);}while(0)
+#define Magic_Thread_SEM_Wait_Time(a,t,c)				do{DWORD dwRet = WaitForSingleObject(a, t);   \
+                                                            if(dwRet == WAIT_OBJECT_0) {c = Magic_SEM_Wait_OK; } else if(dwRet == WAIT_TIMEOUT) {c = Magic_SEM_Wait_TIMEOUT;} else {c = Magic_SEM_Wait_ERROR;} \
+                                                        }while(0)
 #define Magic_Thread_SEM_Post(a)					ReleaseSemaphore(a, 1, NULL)
 #define Magic_Thread_SEM_destroy(a)					CloseHandle(a)			
 #define Magic_Thread_Mutex_Lock(a)					EnterCriticalSection(a)
@@ -124,7 +130,7 @@ typedef unsigned int								Magic_SOCKSET;
 #define Magic_Thread_Terminate(a)					pthread_cancel(a)
 #define Magic_Thread_SEM_init(a,b,c,d,e,f,g)		(sem_init(&a,(int)f,g) == 0)
 #define Magic_Thread_SEM_Wait(a)					sem_wait(&a)
-#define Magic_Thread_SEM_Wait_Time(a,t)				do{												\
+#define Magic_Thread_SEM_Wait_Time(a,t,c)				do{												\
 														struct timespec ts;							\
 														clock_gettime(CLOCK_REALTIME, &ts);			\
 														unsigned long msecs = t;					\
@@ -134,7 +140,17 @@ typedef unsigned int								Magic_SOCKSET;
 														add = msecs / (1000 * 1000 * 1000);			\
 														ts.tv_sec += (add + secs);					\
 														ts.tv_nsec = msecs % (1000 * 1000 * 1000);  \
-														sem_timedwait(&a, &ts);						\
+														int res = sem_timedwait(&a, &ts);						\
+                                                        if(res == -1) {                             \
+                                                            if(errno == ETIMEDOUT) {                \
+                                                                c = Magic_SEM_Wait_TIMEOUT;         \
+															} else {                                \
+																c = Magic_SEM_Wait_ERROR;           \
+															}                                       \
+														}                                           \
+														else {                                      \
+															c = Magic_SEM_Wait_OK;                  \
+														}                                           \
 													}while(0)
 
 

@@ -51,6 +51,10 @@
 
 #endif
 
+#define MAGIC_WAIT_MESSAGE_ERROR      2   // 等待失败，处理错误
+#define MAGIC_WAIT_MESSAGE_TIMEOUT    1   // 等待超时
+#define MAGIC_WAIT_MESSAGE_OK         0   // 等待已经处理完成
+
 #define MAGIC_MAIN_THREAD_NAME			"MAIN_THREAD"
 
 #define MAGIC_WAIT_INFINITE				0xFFFFFFFF
@@ -61,9 +65,12 @@
 #define BindClassFunctionObject(F,O) std::bind(F, O)
 
 #define MM_MESS		Magic::Management::MESSAGE_TYPE _MessageType, Magic::Management::MESSAGE _Message
+#define KEY_MESS    void*, void*, void*, void*
 
 #define MESSAGE_THREAD_CLOSE			0xFFFFFFFF
 #define MESSAGE_THREAD_CLOSED			0xFFFFFFFE	//警告此消息的将在UpdataThreadManagement的线程中处理
+
+#define MAGIC_NULL_PARAM                (void*)0
 
 namespace Magic
 {
@@ -71,6 +78,7 @@ namespace Magic
 	{
 		typedef unsigned int MESSAGE_TYPE;
 		typedef long long MESSAGE;
+		typedef void* WAIT_MESSAGE;
 
 		enum ThreadTypeMode
 		{
@@ -86,7 +94,9 @@ namespace Magic
 
 		typedef unsigned long long THREAD_OBJECT;
 		typedef void* THREAD_POOL_OBJECT;
+		typedef std::function<void(KEY_MESS)> MESSAGE_TRANSFER_FUNC;
 		typedef std::function<void(MESSAGE_TYPE, MESSAGE)> Callback_Message;
+		typedef std::function<unsigned int(const std::string&, const MESSAGE_TRANSFER_FUNC&)> Callback_Message_Key;
 		typedef std::function<void(void)> Callback_Void;
 
 		/*
@@ -290,13 +300,40 @@ namespace Magic
 
 		/*
 		*功能：
+		*	监听线程消息
+		*参数：
+		*	_THREAD_OBJECT = 线程对象
+		*   _name = 监听线程对象名
+		*	key = 监听消息的事件
+		*	_CallBack = 处理函数：回调函数中的返回值 如果返回0代表不再重复执行。返回1代表会继续重复执行，直到返回0。
+		*               如果存在等待对象，返回0时，将会触发异步等待WaitMessage函数退出。
+		*   waitMessage = 如果传入等待对象。请在想要的位置调用WaitMessage函数，等待消息处理收到
+		*返回值：
+		*	bool = true 发送成功 | false发送失败
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const Callback_Message_Key& _CallBack, WAIT_MESSAGE* waitMessage = 0);
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool MonitorThreadMessage(const char* _name, const std::string& key, const Callback_Message_Key& _CallBack, WAIT_MESSAGE* waitMessage = 0);
+
+		/*
+		*功能：
+		*	异步等待传入的消息对象处理完成后再退出
+		*参数：
+		*	waitMessage = 需要等待的消息对象
+		*   timeout = 超时时长，默认
+		*返回值：
+		*	bool = true 发送成功 | false发送失败
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout = MAGIC_WAIT_INFINITE);
+
+		/*
+		*功能：
 		*	监听线程池消息
 		*参数：
 		*	_THREAD_POOL_OBJECT =  线程池对象
 		*	_MessageType = 监听消息类型
 		*	_CallBack = 处理函数
 		*返回值：
-		*	空
+		*	bool = true 发送成功 | false发送失败
 		*/
 		DLL_MAGIC_THREAD_OUTPUT_INPUT bool MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack);
 		DLL_MAGIC_THREAD_OUTPUT_INPUT bool MonitorThreadPoolMessage(const char* _name, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack);
@@ -346,6 +383,49 @@ namespace Magic
 		*	bool = true 发送成功 | false发送失败
 		*/
 		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SendMessageTo(MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack = nullptr);
+
+
+		/*
+		*功能：
+		*	发送消息到指定线程
+		*参数：
+		*	[IN]_THREAD_OBJECT = 线程对象
+		*	[IN]key = 消息事件名
+		*	[IN]messageTransfer = 需要传递的参数
+		*警告：
+		*
+		*返回值：
+		*	bool = true 发送成功 | false发送失败
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer);
+
+
+		/*
+		*功能：
+		*	发送消息到指定线程
+		*参数：
+		*	[IN]_name = 线程对象名
+		*	[IN]key = 消息事件名
+		*	[IN]messageTransfer = 需要传递的参数
+		*警告：
+		*
+		*返回值：
+		*	bool = true 发送成功 | false发送失败
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SendMessageTo(const char* _name, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer);
+
+		/*
+		*功能：
+		*	发送消息到当前线程
+		*参数：
+		*	[IN]key = 消息事件名
+		*	[IN]messageTransfer = 需要传递的参数
+		*警告：
+		*
+		*返回值：
+		*	bool = true 发送成功 | false发送失败
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool SendMessageTo(const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer);
 
 		/*
 		*功能：
@@ -430,6 +510,25 @@ namespace Magic
 		*	空
 		*/
 		DLL_MAGIC_THREAD_OUTPUT_INPUT void GetTHREAD_POOL_OBJECT_Name(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, char* _name, int _size);
+
+
+		template<typename T1, typename T2, typename T3, typename T4>
+		MESSAGE_TRANSFER_FUNC SetMessageParam(T1 arg1, T2 arg2, T3 arg3, T4 arg4) {
+			return [arg1, arg2, arg3, arg4](void* p1, void* p2, void* p3, void* p4) {
+				if (p1 != nullptr) {
+					*(T1*)p1 = arg1;
+				}
+				if (p2 != nullptr) {
+					*(T2*)p2 = arg2;
+				}
+				if (p3 != nullptr) {
+					*(T3*)p3 = arg3;
+				}
+				if (p4 != nullptr) {
+					*(T4*)p4 = arg4;
+				}
+			};
+		}
 	}
 }
 

@@ -31,6 +31,8 @@ include_directories(
 )
 
 set(SOURCE_FILES
+${PROJECT_SOURCE_DIR}/../../Core/Demo1/WaitMessage/Wait_Message.h
+${PROJECT_SOURCE_DIR}/../../Core/Demo1/WaitMessage/Wait_Message.cpp
 ${PROJECT_SOURCE_DIR}/../../Core/Demo1/main.cpp)
 
 IF(WIN32)

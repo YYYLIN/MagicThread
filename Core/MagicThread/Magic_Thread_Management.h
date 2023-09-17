@@ -50,18 +50,28 @@ namespace Magic
 
 		struct Message
 		{
-			unsigned int m_MessageType;
+			unsigned int m_MessageType; // 事件id消息
 			long long m_Message;
+			std::string messageKey;  // 事件文本消息
+			MESSAGE_TRANSFER_FUNC messageTransferFunc; // 传递事件参数的函数
 			Callback_Message m_CallBack;
 			ThreadObject* m_pThreadObject;
 			unsigned int messageMode;
 			Message();
-			Message(const unsigned int& _MessageType, const long long& _Message, const Callback_Message& _CallBack, ThreadObject* _pThreadObject, unsigned int _messageMode);
+			Message(const unsigned int& _MessageType, const long long& _Message, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageFunc, const Callback_Message& _CallBack, ThreadObject* _pThreadObject, unsigned int _messageMode);
+		};
+
+		struct CALL_BACK_MONITOR_KEY
+		{
+			bool isWait;
+			Magic_SEM messageSynchSEM;
+			Callback_Message_Key callback;
 		};
 
 		struct ThreadObject
 		{
 			typedef std::unordered_map<MESSAGE_TYPE, std::vector<Callback_Message>> UMAP_VEC_CALLBACK;
+			typedef std::unordered_map<std::string, std::vector<CALL_BACK_MONITOR_KEY>> UMAP_VEC_CALLBACK_KEY;
 
 			std::vector<Callback_Void> m_vec_Callback;
 			Magic_THREAD m_Thread;
@@ -78,6 +88,7 @@ namespace Magic
 			Magic_SEM m_Synch_SEM;
 
 			UMAP_VEC_CALLBACK m_umap_MonitorFunction;
+			UMAP_VEC_CALLBACK_KEY m_umap_KeyMonitorFunction;
 			Magic_MUTEX m_MessageMutex;
 
 			ThreadObject();
@@ -128,11 +139,17 @@ namespace Magic
 
 			bool MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack);
 
+			bool MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const Callback_Message_Key& _CallBack, WAIT_MESSAGE* waitMessage = 0);
+
+			unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout = MAGIC_WAIT_INFINITE);
+
 			bool MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack);
 
-			bool SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack = nullptr, bool _Synch = false);
+			bool SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer, const Callback_Message& _CallBack = nullptr, bool _Synch = false);
 
 			bool SendMessageTo(MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack = nullptr, bool _Synch = false);
+
+			bool SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer);
 
 			bool SendMessageToPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch = false);
 
@@ -181,10 +198,11 @@ namespace Magic
 			static SystemThread* m_S_pSystemThread;
 		};
 
-		void ThreadMessageHandle(ThreadObject* _pThreadObject);
+		void ThreadMessageHandle(ThreadObject* _pThreadObject, bool isWait = true);
 		void ThreadHandle(ThreadObject* _pThreadObject);
 
 		void MessageHandle(ThreadObject* _pThreadObject, const unsigned int& _MessageType, const long long& _Message);
+		void MessageHandleKey(ThreadObject* _pThreadObject, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransferFunc);
 	}
 }
 

@@ -37,8 +37,8 @@ namespace Magic
 
 		}
 
-		Message::Message(const unsigned int& _MessageType, const long long& _Message, const Callback_Message& _CallBack, ThreadObject* _pThreadObject, unsigned int _messageMode)
-			: m_MessageType(_MessageType), m_Message(_Message), m_CallBack(_CallBack), m_pThreadObject(_pThreadObject), messageMode(_messageMode)
+		Message::Message(const unsigned int& _MessageType, const long long& _Message, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageFunc, const Callback_Message& _CallBack, ThreadObject* _pThreadObject, unsigned int _messageMode)
+			: m_MessageType(_MessageType), m_Message(_Message), messageKey(key), messageTransferFunc(messageFunc), m_CallBack(_CallBack), m_pThreadObject(_pThreadObject), messageMode(_messageMode)
 		{
 
 		}
@@ -198,7 +198,7 @@ namespace Magic
 					char _text[256];
 					Magic_Sprintf_s(_text, 256, "%s_%d", _name, a);
 					THREAD_OBJECT _THREAD_OBJECT = Create(_text, THREAD_LOOP_RUN, THREAD_MESSAGE_WAIT, true);
-					SendMessageTo(_THREAD_OBJECT, 0, 0,
+					SendMessageTo(_THREAD_OBJECT, 0, 0, "", nullptr,
 						[_THREAD_POOL_OBJECT](MESSAGE_TYPE, MESSAGE)
 						{
 							m_S_T_pThreadPoolObject = (ThreadPoolObject*)_THREAD_POOL_OBJECT;
@@ -251,7 +251,7 @@ namespace Magic
 		}
 
 		bool SystemThread::SetWaitTime(THREAD_OBJECT _THREAD_OBJECT, unsigned long time) {
-			return this->SendMessageTo(_THREAD_OBJECT, 0, 0,
+			return this->SendMessageTo(_THREAD_OBJECT, 0, 0, "", nullptr,
 				[time](MM_MESS) {
 					m_S_T_pThreadObject->m_ThreadWaitTime = time;
 				});
@@ -280,7 +280,7 @@ namespace Magic
 		bool SystemThread::MonitorThread(THREAD_OBJECT _THREAD_OBJECT, const Callback_Void& _CallBack) {
 			Callback_Void _BufferCallback = _CallBack;
 
-			return SendMessageTo(_THREAD_OBJECT, 0, 0, [_BufferCallback](MESSAGE_TYPE _MessageType, MESSAGE _Message) {
+			return SendMessageTo(_THREAD_OBJECT, 0, 0, "", nullptr, [_BufferCallback](MESSAGE_TYPE _MessageType, MESSAGE _Message) {
 				m_S_T_pThreadObject->m_vec_Callback.push_back(_BufferCallback);
 				});
 		}
@@ -298,13 +298,69 @@ namespace Magic
 		{
 			Callback_Message _BufferCallback = _CallBack;
 
-			return SendMessageTo(_THREAD_OBJECT, 0, 0, [_BufferCallback, _MessageType](MESSAGE_TYPE, MESSAGE _Message) {
+			return SendMessageTo(_THREAD_OBJECT, 0, 0, "", nullptr, [_BufferCallback, _MessageType](MESSAGE_TYPE, MESSAGE _Message) {
 				auto _MointorVec = m_S_T_pThreadObject->m_umap_MonitorFunction.find(_MessageType);
 				if (_MointorVec != m_S_T_pThreadObject->m_umap_MonitorFunction.end())
 					_MointorVec->second.push_back(_BufferCallback);
 				else
 					m_S_T_pThreadObject->m_umap_MonitorFunction.insert(std::make_pair(_MessageType, std::vector<Callback_Message>({ _BufferCallback })));
 				});
+		}
+
+		bool SystemThread::MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const Callback_Message_Key& _CallBack, WAIT_MESSAGE* pwaitMessage) {
+			Callback_Message_Key _BufferCallback = _CallBack;
+			Magic_SEM messageSynchSEM;
+			bool _Synch = false;
+			if (pwaitMessage) {
+				_Synch = true;
+				Magic_Thread_SEM_init(messageSynchSEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
+				*pwaitMessage = (WAIT_MESSAGE)messageSynchSEM;
+			}
+			return SendMessageTo(_THREAD_OBJECT, 0, 0, "", nullptr, [_BufferCallback, key, _Synch, messageSynchSEM](MESSAGE_TYPE, MESSAGE _Message) {
+				CALL_BACK_MONITOR_KEY callbackMonitorKey;
+				callbackMonitorKey.isWait = _Synch;
+				callbackMonitorKey.callback = _BufferCallback;
+				callbackMonitorKey.messageSynchSEM = messageSynchSEM;
+				auto _MointorVec = m_S_T_pThreadObject->m_umap_KeyMonitorFunction.find(key);
+				if (_MointorVec != m_S_T_pThreadObject->m_umap_KeyMonitorFunction.end())
+					_MointorVec->second.push_back(callbackMonitorKey);
+				else
+					m_S_T_pThreadObject->m_umap_KeyMonitorFunction.insert(std::make_pair(key, std::vector<CALL_BACK_MONITOR_KEY>({ callbackMonitorKey })));
+				});
+		}
+
+		unsigned int SystemThread::WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout) {
+			unsigned int sem_res = MAGIC_WAIT_MESSAGE_ERROR;
+			if (waitMessage != nullptr) {
+				Magic_SEM wait = (Magic_SEM)waitMessage;
+				// 等待事件回调触发
+				if (m_S_T_pThreadObject != 0) {
+					unsigned long long lastTime = Magic_CLOCK();
+					do {
+						Magic_Thread_SEM_Wait_Time(wait, 1, sem_res);
+						if (sem_res == MAGIC_WAIT_MESSAGE_TIMEOUT) {
+							if (lastTime + timeout < Magic_CLOCK()) {
+								break;
+							}
+							// 当前线程先处理其他事件，不柱塞当前线程功能
+							ThreadMessageHandle(m_S_T_pThreadObject, false);
+						}
+						else if (sem_res == MAGIC_WAIT_MESSAGE_ERROR) {
+							break;
+						}
+						else {
+							break;
+						}
+					} while (true);
+				}
+				else {
+					// 当前线程不受线程管理器控制的话,直接按需求等待
+					Magic_Thread_SEM_Wait_Time(wait, timeout, sem_res);
+				}
+
+				Magic_Thread_SEM_destroy(wait);
+			}
+			return sem_res;
 		}
 
 		bool SystemThread::MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)
@@ -320,7 +376,7 @@ namespace Magic
 				});
 		}
 
-		bool SystemThread::SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
+		bool SystemThread::SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer, const Callback_Message& _CallBack, bool _Synch)
 		{
 			ThreadObject* _pThreadObject = 0;
 			if (!_THREAD_OBJECT)
@@ -347,7 +403,7 @@ namespace Magic
 
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
 			_ThreadMessageMode = Magic_InterlockedExchangeAdd((long*)&_pThreadObject->m_ThreadMessageMode, 0) == THREAD_MESSAGE_WAIT;
-			_pThreadObject->m_queue_Message.push_back(Message(_MessageType, _Message, _CallBack, _pSendThreadObject, _ThreadMessageMode));
+			_pThreadObject->m_queue_Message.push_back(Message(_MessageType, _Message, key, messageTransfer, _CallBack, _pSendThreadObject, _ThreadMessageMode));
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
 			if (_ThreadMessageMode)
 				Magic_Thread_SEM_Post(_pThreadObject->m_Queue_SEM);
@@ -361,7 +417,11 @@ namespace Magic
 
 		bool SystemThread::SendMessageTo(MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
 		{
-			return SendMessageTo(m_S_T_ThreadObjectId, _MessageType, _Message, _CallBack, _Synch);
+			return SendMessageTo(m_S_T_ThreadObjectId, _MessageType, _Message, "", nullptr, _CallBack, _Synch);
+		}
+
+		bool SystemThread::SendMessageTo(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransfer) {
+			return SendMessageTo(_THREAD_OBJECT, 0, 0, key, messageTransfer);
 		}
 
 		bool SystemThread::SendMessageToPool(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, MESSAGE _Message, const Callback_Message& _CallBack, bool _Synch)
@@ -376,7 +436,7 @@ namespace Magic
 			}
 
 			Magic_Thread_Mutex_Lock(&_pThreadPoolObject->m_MessageMutex);
-			_pThreadPoolObject->m_queue_Message.push(Message(_MessageType, _Message, _CallBack, _pSendThreadObject, THREAD_MESSAGE_WAIT));
+			_pThreadPoolObject->m_queue_Message.push(Message(_MessageType, _Message, "", nullptr, _CallBack, _pSendThreadObject, THREAD_MESSAGE_WAIT));
 			Magic_Thread_Mutex_unLock(&_pThreadPoolObject->m_MessageMutex);
 
 			Magic_Thread_SEM_Post(_pThreadPoolObject->m_queue_SEM);
@@ -447,7 +507,7 @@ namespace Magic
 
 		void SystemThread::Shutdown(THREAD_OBJECT _THREAD_OBJECT)
 		{
-			SendMessageTo(_THREAD_OBJECT, 0, 0,
+			SendMessageTo(_THREAD_OBJECT, 0, 0, "", nullptr,
 				[](MM_MESS) {
 					m_S_T_pThreadObject->m_ThreadRunState = THREAD_STOP;
 				});
@@ -502,7 +562,7 @@ namespace Magic
 
 		void SystemThread::DeleteThreadMessage(ThreadObject* pThreadObject) {
 			//发送到主线程来删除线程对象内存
-			SendMessageTo(GetTHREAD_OBJECT(MAGIC_MAIN_THREAD_NAME), 0, 0,
+			SendMessageTo(GetTHREAD_OBJECT(MAGIC_MAIN_THREAD_NAME), 0, 0, "", nullptr,
 				[pThreadObject](MM_MESS) {
 					SystemThread::Instance()->DeleteThreadMemory(pThreadObject);
 				});
@@ -587,11 +647,16 @@ namespace Magic
 			return arcoss_return(0);
 		}
 
-		void ThreadMessageHandle(ThreadObject* _pThreadObject)
+		void ThreadMessageHandle(ThreadObject* _pThreadObject, bool isWait)
 		{
-			ThreadMessageMode threadmessagemode = (ThreadMessageMode)Magic_InterlockedExchangeAdd((long*)&_pThreadObject->m_ThreadMessageMode, 0);
-			if (threadmessagemode == THREAD_MESSAGE_WAIT)
-				Magic_Thread_SEM_Wait_Time(_pThreadObject->m_Queue_SEM, _pThreadObject->m_ThreadWaitTime);
+			if (isWait) {
+				ThreadMessageMode threadmessagemode = (ThreadMessageMode)Magic_InterlockedExchangeAdd((long*)&_pThreadObject->m_ThreadMessageMode, 0);
+				if (threadmessagemode == THREAD_MESSAGE_WAIT) {
+					unsigned int sem_res;
+					Magic_Thread_SEM_Wait_Time(_pThreadObject->m_Queue_SEM, _pThreadObject->m_ThreadWaitTime, sem_res);
+				}
+			}
+
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
 			_pThreadObject->m_Last_queue_Message = _pThreadObject->m_queue_Message;
 			_pThreadObject->m_queue_Message.clear();
@@ -601,13 +666,19 @@ namespace Magic
 				_pThreadObject->m_Last_queue_Message.front().messageMode = THREAD_MESSAGE_NO_WAIT;
 			}
 			for (auto& a : _pThreadObject->m_Last_queue_Message) {
-				if (a.messageMode == THREAD_MESSAGE_WAIT)
-					Magic_Thread_SEM_Wait_Time(_pThreadObject->m_Queue_SEM, _pThreadObject->m_ThreadWaitTime);
+				if (a.messageMode == THREAD_MESSAGE_WAIT) {
+					// 消耗掉事件数量
+					unsigned int sem_res;
+					Magic_Thread_SEM_Wait_Time(_pThreadObject->m_Queue_SEM, _pThreadObject->m_ThreadWaitTime, sem_res);
+				}
 				if (a.m_CallBack) {
 					a.m_CallBack(a.m_MessageType, a.m_Message);
 				}
-
-				MessageHandle(_pThreadObject, a.m_MessageType, a.m_Message);
+				// 不处理0类型事件消息
+				if (a.m_MessageType != 0) {
+					MessageHandle(_pThreadObject, a.m_MessageType, a.m_Message);
+				}
+				MessageHandleKey(_pThreadObject, a.messageKey, a.messageTransferFunc);
 
 				if (a.m_pThreadObject) {
 					Magic_Thread_SEM_Post(a.m_pThreadObject->m_Synch_SEM);
@@ -627,6 +698,26 @@ namespace Magic
 			if (_MonitorVec != _pThreadObject->m_umap_MonitorFunction.end()) {
 				for (auto& _allback : _MonitorVec->second) {
 					_allback(_MessageType, _Message);
+				}
+			}
+		}
+
+		void MessageHandleKey(ThreadObject* _pThreadObject, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransferFunc) {
+			auto _MonitorVec = _pThreadObject->m_umap_KeyMonitorFunction.find(key);
+			if (_MonitorVec != _pThreadObject->m_umap_KeyMonitorFunction.end()) {
+				for (auto a = _MonitorVec->second.begin();a != _MonitorVec->second.end(); ) {
+					unsigned int result = a->callback(key, messageTransferFunc);
+					if (result == 0) {
+						// 返回0代表，回调函数不再执行
+						if (a->isWait) {
+							// 如果存在异步柱塞，发送通知，激活柱塞
+							Magic_Thread_SEM_Post(a->messageSynchSEM);
+						}
+						a = _MonitorVec->second.erase(a);
+					}
+					else {
+						a++;
+					}
 				}
 			}
 		}
