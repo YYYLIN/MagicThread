@@ -61,10 +61,15 @@ namespace Magic
 			Message(const unsigned int& _MessageType, const long long& _Message, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageFunc, const Callback_Message& _CallBack, ThreadObject* _pThreadObject, unsigned int _messageMode);
 		};
 
+		struct WAIT_MESSAGE_SYNC {
+			Magic_SEM messageSynchSEM;
+			Magic_MUTEX m_mutex;
+		};
+
 		struct CALL_BACK_MONITOR_KEY
 		{
 			bool isWait;
-			Magic_SEM messageSynchSEM;
+			WAIT_MESSAGE_SYNC waitMessage;
 			Callback_Message_Key callback;
 		};
 

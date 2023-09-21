@@ -309,18 +309,21 @@ namespace Magic
 
 		bool SystemThread::MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const Callback_Message_Key& _CallBack, WAIT_MESSAGE* pwaitMessage) {
 			Callback_Message_Key _BufferCallback = _CallBack;
-			Magic_SEM messageSynchSEM;
+			WAIT_MESSAGE_SYNC waitMessage;
 			bool _Synch = false;
 			if (pwaitMessage) {
 				_Synch = true;
-				Magic_Thread_SEM_init(messageSynchSEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
-				*pwaitMessage = (WAIT_MESSAGE)messageSynchSEM;
+				WAIT_MESSAGE_SYNC* p = new WAIT_MESSAGE_SYNC;
+				Magic_Thread_Mutex_Init(&p->m_mutex);
+				Magic_Thread_SEM_init(p->messageSynchSEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
+				*pwaitMessage = (WAIT_MESSAGE)p;
+				waitMessage = *p;
 			}
-			return SendMessageTo(_THREAD_OBJECT, 0, 0, "", nullptr, [_BufferCallback, key, _Synch, messageSynchSEM](MESSAGE_TYPE, MESSAGE _Message) {
+			return SendMessageTo(_THREAD_OBJECT, 0, 0, "", nullptr, [_BufferCallback, key, _Synch, waitMessage](MESSAGE_TYPE, MESSAGE _Message) {
 				CALL_BACK_MONITOR_KEY callbackMonitorKey;
 				callbackMonitorKey.isWait = _Synch;
 				callbackMonitorKey.callback = _BufferCallback;
-				callbackMonitorKey.messageSynchSEM = messageSynchSEM;
+				callbackMonitorKey.waitMessage = waitMessage;
 				auto _MointorVec = m_S_T_pThreadObject->m_umap_KeyMonitorFunction.find(key);
 				if (_MointorVec != m_S_T_pThreadObject->m_umap_KeyMonitorFunction.end())
 					_MointorVec->second.push_back(callbackMonitorKey);
@@ -332,12 +335,13 @@ namespace Magic
 		unsigned int SystemThread::WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout) {
 			unsigned int sem_res = MAGIC_WAIT_MESSAGE_ERROR;
 			if (waitMessage != nullptr) {
-				Magic_SEM wait = (Magic_SEM)waitMessage;
+				WAIT_MESSAGE_SYNC wait = *(WAIT_MESSAGE_SYNC*)waitMessage;
+				delete (WAIT_MESSAGE_SYNC*)waitMessage;
 				// 等待事件回调触发
 				if (m_S_T_pThreadObject != 0) {
 					unsigned long long lastTime = Magic_CLOCK();
 					do {
-						Magic_Thread_SEM_Wait_Time(wait, 1, sem_res);
+						Magic_Thread_SEM_Wait_Time(wait.messageSynchSEM, 1, sem_res);
 						if (sem_res == MAGIC_WAIT_MESSAGE_TIMEOUT) {
 							if (lastTime + timeout < Magic_CLOCK()) {
 								break;
@@ -355,10 +359,14 @@ namespace Magic
 				}
 				else {
 					// 当前线程不受线程管理器控制的话,直接按需求等待
-					Magic_Thread_SEM_Wait_Time(wait, timeout, sem_res);
+					Magic_Thread_SEM_Wait_Time(wait.messageSynchSEM, timeout, sem_res);
 				}
 
-				Magic_Thread_SEM_destroy(wait);
+				// 等待对方线程，如果正好在执行回调函数。等待执行完成后再处理
+				Magic_Thread_Mutex_Lock(&wait.m_mutex);
+				Magic_Thread_SEM_destroy(wait.messageSynchSEM);
+				Magic_Thread_Mutex_unLock(&wait.m_mutex);
+				Magic_Thread_Mutex_Destroy(&wait.m_mutex);
 			}
 			return sem_res;
 		}
@@ -706,12 +714,28 @@ namespace Magic
 			auto _MonitorVec = _pThreadObject->m_umap_KeyMonitorFunction.find(key);
 			if (_MonitorVec != _pThreadObject->m_umap_KeyMonitorFunction.end()) {
 				for (auto a = _MonitorVec->second.begin();a != _MonitorVec->second.end(); ) {
-					unsigned int result = a->callback(key, messageTransferFunc);
+					bool isRun = true;
+					if (a->isWait) {
+						Magic_Thread_Mutex_Lock(&a->waitMessage.m_mutex);
+						int sem_res;
+						// 检查函数是否已经无效
+						Magic_Thread_SEM_Wait_Time(a->waitMessage.messageSynchSEM, 0, sem_res);
+						if (sem_res == MAGIC_WAIT_MESSAGE_ERROR) {
+							isRun = false;
+						}
+					}
+					unsigned int result = 0;
+					if (isRun) {
+						result = a->callback(key, messageTransferFunc);
+					}
+					if (a->isWait) {
+						Magic_Thread_Mutex_unLock(&a->waitMessage.m_mutex);
+					}
 					if (result == 0) {
 						// 返回0代表，回调函数不再执行
 						if (a->isWait) {
 							// 如果存在异步柱塞，发送通知，激活柱塞
-							Magic_Thread_SEM_Post(a->messageSynchSEM);
+							Magic_Thread_SEM_Post(a->waitMessage.messageSynchSEM);
 						}
 						a = _MonitorVec->second.erase(a);
 					}

@@ -67,7 +67,7 @@ void TestWaitMessage() {
 		});
 
 	// 等待底层接口回复消息
-	WaitMessage(waitMessage);
+	WaitMessage(waitMessage, 1000);
 
 	printf("Reply Msg: %s\n", replyMsg.c_str());
 }

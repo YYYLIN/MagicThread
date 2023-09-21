@@ -40,6 +40,8 @@ int main() {
 	// ThreadMessage();
 	TestWaitMessage();
 
+	UpdataThreadManagement();
+
 	ShutdownThreadManagement();
 
 	getchar();
