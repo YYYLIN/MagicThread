@@ -70,6 +70,9 @@
 #define MESSAGE_THREAD_CLOSE			0xFFFFFFFF
 #define MESSAGE_THREAD_CLOSED			0xFFFFFFFE	//警告此消息的将在UpdataThreadManagement的线程中处理
 
+#define MESSAGE_THREAD_CLOSE_S          "MESSAGE_THREAD_CLOSE"
+#define MESSAGE_THREAD_CLOSED_S         "MESSAGE_THREAD_CLOSED"
+
 #define MAGIC_NULL_PARAM                (void*)0
 
 namespace Magic

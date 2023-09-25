@@ -89,6 +89,8 @@ namespace Magic
 
 			std::vector<Message> m_queue_Message;
 			std::vector<Message> m_Last_queue_Message;
+			std::vector<Message>* p_queue_Message;
+			std::vector<Message>* p_last_queue_Message;
 			Magic_SEM m_Queue_SEM;
 			Magic_SEM m_Synch_SEM;
 
@@ -208,6 +210,7 @@ namespace Magic
 
 		void MessageHandle(ThreadObject* _pThreadObject, const unsigned int& _MessageType, const long long& _Message);
 		void MessageHandleKey(ThreadObject* _pThreadObject, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransferFunc);
+		void MessageHandleVecKey(std::vector<CALL_BACK_MONITOR_KEY>* _MonitorVec, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransferFunc);
 	}
 }
 

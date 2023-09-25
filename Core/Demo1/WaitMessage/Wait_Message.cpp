@@ -20,7 +20,7 @@ void HIDThread() {
 
 void USBHIDThread() {
 	for (auto& a : g_DeveicMessage) {
-		Magic_Sleep(10);
+		Magic_Sleep(5);
 
 		// 底层处理完成，发送回复消息到HID库
 		std::vector<unsigned char> data = { 33,44,55,66 };
@@ -67,7 +67,17 @@ void TestWaitMessage() {
 		});
 
 	// 等待底层接口回复消息
-	WaitMessage(waitMessage, 1000);
+	WaitMessage(waitMessage);
+
+	MonitorThreadMessage("HID", MESSAGE_THREAD_CLOSED_S, [&replyData, &replyMsg](const std::string& key, const MESSAGE_TRANSFER_FUNC& message) {
+
+		// 返回0，此函数只监听调用一次
+		return 0;
+	}, &waitMessage);
+
+	ShutdownThreadObject("HID");
+
+	WaitMessage(waitMessage);
 
 	printf("Reply Msg: %s\n", replyMsg.c_str());
 }

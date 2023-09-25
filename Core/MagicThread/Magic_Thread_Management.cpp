@@ -152,6 +152,8 @@ namespace Magic
 					_THREAD_OBJECT = ++s_ThreadObjectId;
 					m_set_ThreadObject.insert(std::make_pair(_THREAD_OBJECT, &_findTO->second));
 					_findTO->second.m_ThreadObjectId = _THREAD_OBJECT;
+					_findTO->second.p_queue_Message = &_findTO->second.m_queue_Message;
+					_findTO->second.p_last_queue_Message = &_findTO->second.m_Last_queue_Message;
 					Magic_Thread_Mutex_Init(&_findTO->second.m_MessageMutex);
 					Magic_Thread_SEM_init(_findTO->second.m_Queue_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
 					Magic_Thread_SEM_init(_findTO->second.m_Synch_SEM, NULL, 0, LONG_MAX, NULL, NULL, 0);
@@ -411,7 +413,7 @@ namespace Magic
 
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
 			_ThreadMessageMode = Magic_InterlockedExchangeAdd((long*)&_pThreadObject->m_ThreadMessageMode, 0) == THREAD_MESSAGE_WAIT;
-			_pThreadObject->m_queue_Message.push_back(Message(_MessageType, _Message, key, messageTransfer, _CallBack, _pSendThreadObject, _ThreadMessageMode));
+			_pThreadObject->p_queue_Message->push_back(Message(_MessageType, _Message, key, messageTransfer, _CallBack, _pSendThreadObject, _ThreadMessageMode));
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
 			if (_ThreadMessageMode)
 				Magic_Thread_SEM_Post(_pThreadObject->m_Queue_SEM);
@@ -595,9 +597,14 @@ namespace Magic
 
 			//缓存关闭完成消息回调
 			std::vector<Callback_Message> vec_MonitorVec;
+			std::vector<CALL_BACK_MONITOR_KEY> vec_MonitorKeyVec;
 			auto _MonitorVec = pThreadObject->m_umap_MonitorFunction.find(MESSAGE_THREAD_CLOSED);
 			if (_MonitorVec != pThreadObject->m_umap_MonitorFunction.end()) {
 				vec_MonitorVec = _MonitorVec->second;
+			}
+			auto _MonitorKeyVec = pThreadObject->m_umap_KeyMonitorFunction.find(MESSAGE_THREAD_CLOSED_S);
+			if (_MonitorKeyVec != pThreadObject->m_umap_KeyMonitorFunction.end()) {
+				vec_MonitorKeyVec = _MonitorKeyVec->second;
 			}
 
 			Magic_Thread_Mutex_Lock(&m_Mutex);
@@ -614,6 +621,7 @@ namespace Magic
 			for (auto i = vec_MonitorVec.begin(); i != vec_MonitorVec.end(); i++) {
 				i->operator()(MESSAGE_THREAD_CLOSED, (long long)pThreadObject);
 			}
+			MessageHandleVecKey(&vec_MonitorKeyVec, MESSAGE_THREAD_CLOSED_S, [](KEY_MESS) {});
 		}
 
 		void SystemThread::Updata()
@@ -649,6 +657,7 @@ namespace Magic
 			} while (_pThreadObject->m_ThreadRunState != THREAD_STOP);
 
 			MessageHandle(_pThreadObject, MESSAGE_THREAD_CLOSE, (long long)_pThreadObject);
+			MessageHandleKey(_pThreadObject, MESSAGE_THREAD_CLOSE_S, [](KEY_MESS) {});
 
 			m_S_pSystemThread->DeleteThreadMessage(_pThreadObject);
 
@@ -666,14 +675,17 @@ namespace Magic
 			}
 
 			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
-			_pThreadObject->m_Last_queue_Message = _pThreadObject->m_queue_Message;
-			_pThreadObject->m_queue_Message.clear();
+			// 交换队列缓存指针
+			std::vector<Message>* pQueueMessage;
+			pQueueMessage = _pThreadObject->p_queue_Message;
+			_pThreadObject->p_queue_Message = _pThreadObject->p_last_queue_Message;
+			_pThreadObject->p_last_queue_Message = pQueueMessage;
 			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
 
-			if (_pThreadObject->m_Last_queue_Message.size()) {
-				_pThreadObject->m_Last_queue_Message.front().messageMode = THREAD_MESSAGE_NO_WAIT;
+			if (_pThreadObject->p_last_queue_Message->size()) {
+				_pThreadObject->p_last_queue_Message->front().messageMode = THREAD_MESSAGE_NO_WAIT;
 			}
-			for (auto& a : _pThreadObject->m_Last_queue_Message) {
+			for (auto& a : *_pThreadObject->p_last_queue_Message) {
 				if (a.messageMode == THREAD_MESSAGE_WAIT) {
 					// 消耗掉事件数量
 					unsigned int sem_res;
@@ -692,7 +704,7 @@ namespace Magic
 					Magic_Thread_SEM_Post(a.m_pThreadObject->m_Synch_SEM);
 				}
 			}
-			_pThreadObject->m_Last_queue_Message.clear();
+			_pThreadObject->p_last_queue_Message->clear();
 		}
 
 		void ThreadHandle(ThreadObject* _pThreadObject) {
@@ -713,35 +725,39 @@ namespace Magic
 		void MessageHandleKey(ThreadObject* _pThreadObject, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransferFunc) {
 			auto _MonitorVec = _pThreadObject->m_umap_KeyMonitorFunction.find(key);
 			if (_MonitorVec != _pThreadObject->m_umap_KeyMonitorFunction.end()) {
-				for (auto a = _MonitorVec->second.begin();a != _MonitorVec->second.end(); ) {
-					bool isRun = true;
+				MessageHandleVecKey(&_MonitorVec->second, key, messageTransferFunc);
+			}
+		}
+
+		void MessageHandleVecKey(std::vector<CALL_BACK_MONITOR_KEY>* _MonitorVec, const std::string& key, const MESSAGE_TRANSFER_FUNC& messageTransferFunc) {
+			for (auto a = _MonitorVec->begin(); a != _MonitorVec->end(); ) {
+				bool isRun = true;
+				if (a->isWait) {
+					Magic_Thread_Mutex_Lock(&a->waitMessage.m_mutex);
+					int sem_res;
+					// 检查函数是否已经无效
+					Magic_Thread_SEM_Wait_Time(a->waitMessage.messageSynchSEM, 0, sem_res);
+					if (sem_res == MAGIC_WAIT_MESSAGE_ERROR) {
+						isRun = false;
+					}
+				}
+				unsigned int result = 0;
+				if (isRun) {
+					result = a->callback(key, messageTransferFunc);
+				}
+				if (a->isWait) {
+					Magic_Thread_Mutex_unLock(&a->waitMessage.m_mutex);
+				}
+				if (result == 0) {
+					// 返回0代表，回调函数不再执行
 					if (a->isWait) {
-						Magic_Thread_Mutex_Lock(&a->waitMessage.m_mutex);
-						int sem_res;
-						// 检查函数是否已经无效
-						Magic_Thread_SEM_Wait_Time(a->waitMessage.messageSynchSEM, 0, sem_res);
-						if (sem_res == MAGIC_WAIT_MESSAGE_ERROR) {
-							isRun = false;
-						}
+						// 如果存在异步柱塞，发送通知，激活柱塞
+						Magic_Thread_SEM_Post(a->waitMessage.messageSynchSEM);
 					}
-					unsigned int result = 0;
-					if (isRun) {
-						result = a->callback(key, messageTransferFunc);
-					}
-					if (a->isWait) {
-						Magic_Thread_Mutex_unLock(&a->waitMessage.m_mutex);
-					}
-					if (result == 0) {
-						// 返回0代表，回调函数不再执行
-						if (a->isWait) {
-							// 如果存在异步柱塞，发送通知，激活柱塞
-							Magic_Thread_SEM_Post(a->waitMessage.messageSynchSEM);
-						}
-						a = _MonitorVec->second.erase(a);
-					}
-					else {
-						a++;
-					}
+					a = _MonitorVec->erase(a);
+				}
+				else {
+					a++;
 				}
 			}
 		}
