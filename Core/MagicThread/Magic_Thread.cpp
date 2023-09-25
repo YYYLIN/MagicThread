@@ -167,8 +167,8 @@ namespace Magic
 			return SystemThread::Instance()->MonitorThreadMessage(SystemThread::Instance()->GetTHREAD_OBJECT(_name), key, _CallBack, waitMessage);
 		}
 
-		unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout) {
-			return SystemThread::Instance()->WaitMessage(waitMessage, timeout);
+		unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout, bool isSync) {
+			return SystemThread::Instance()->WaitMessage(waitMessage, timeout, isSync);
 		}
 
 		bool MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack)

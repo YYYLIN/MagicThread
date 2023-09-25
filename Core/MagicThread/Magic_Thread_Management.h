@@ -148,7 +148,7 @@ namespace Magic
 
 			bool MonitorThreadMessage(THREAD_OBJECT _THREAD_OBJECT, const std::string& key, const Callback_Message_Key& _CallBack, WAIT_MESSAGE* waitMessage = 0);
 
-			unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout = MAGIC_WAIT_INFINITE);
+			unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout = MAGIC_WAIT_INFINITE, bool isSync = true);
 
 			bool MonitorThreadPoolMessage(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, MESSAGE_TYPE _MessageType, const Callback_Message& _CallBack);
 

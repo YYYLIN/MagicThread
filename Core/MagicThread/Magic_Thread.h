@@ -323,10 +323,11 @@ namespace Magic
 		*参数：
 		*	waitMessage = 需要等待的消息对象
 		*   timeout = 超时时长，默认
+		*   isSync = 是否同步，如果是false就会异步处理（处理其他队列事件不柱塞）
 		*返回值：
 		*	bool = true 发送成功 | false发送失败
 		*/
-		DLL_MAGIC_THREAD_OUTPUT_INPUT unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout = MAGIC_WAIT_INFINITE);
+		DLL_MAGIC_THREAD_OUTPUT_INPUT unsigned int WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout = MAGIC_WAIT_INFINITE, bool isSync = true);
 
 		/*
 		*功能：

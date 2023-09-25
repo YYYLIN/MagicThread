@@ -334,13 +334,13 @@ namespace Magic
 				});
 		}
 
-		unsigned int SystemThread::WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout) {
+		unsigned int SystemThread::WaitMessage(WAIT_MESSAGE waitMessage, unsigned long timeout, bool isSync) {
 			unsigned int sem_res = MAGIC_WAIT_MESSAGE_ERROR;
 			if (waitMessage != nullptr) {
 				WAIT_MESSAGE_SYNC wait = *(WAIT_MESSAGE_SYNC*)waitMessage;
 				delete (WAIT_MESSAGE_SYNC*)waitMessage;
 				// 等待事件回调触发
-				if (m_S_T_pThreadObject != 0) {
+				if (m_S_T_pThreadObject != 0 && isSync == false) {
 					unsigned long long lastTime = Magic_CLOCK();
 					do {
 						Magic_Thread_SEM_Wait_Time(wait.messageSynchSEM, 1, sem_res);
