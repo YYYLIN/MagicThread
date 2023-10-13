@@ -148,8 +148,9 @@ namespace Magic
 				auto _findTO = m_map_ThreadObject.find(_name);
 				if (_findTO != m_map_ThreadObject.end())
 				{
-					static unsigned long long s_ThreadObjectId = 0;
-					_THREAD_OBJECT = ++s_ThreadObjectId;
+					// static unsigned long long s_ThreadObjectId = 0;
+					// _THREAD_OBJECT = ++s_ThreadObjectId;
+					_THREAD_OBJECT = (THREAD_OBJECT)&_findTO->second;
 					m_set_ThreadObject.insert(std::make_pair(_THREAD_OBJECT, &_findTO->second));
 					_findTO->second.m_ThreadObjectId = _THREAD_OBJECT;
 					_findTO->second.p_queue_Message = &_findTO->second.m_queue_Message;
@@ -391,18 +392,8 @@ namespace Magic
 			ThreadObject* _pThreadObject = 0;
 			if (!_THREAD_OBJECT)
 				return false;
-			Magic_Thread_Mutex_Lock(&m_Mutex);
-			auto autofind = m_set_ThreadObject.find(_THREAD_OBJECT);
-			if (autofind != m_set_ThreadObject.end()) {
-				_pThreadObject = autofind->second;
-			}
-			Magic_Thread_Mutex_unLock(&m_Mutex);
-			if (!_pThreadObject)
-				return false;
-			//理论上当在这个位置_pThreadObject内存被删除时，后面的代码会发生线程安全问题。
-			//但是当m_set_ThreadObject中的对象被删除后，还会调用一次SendMessageTo。所以按时间比例来说，当前函数运行完成时。_pThreadObject还不会到达删除位置。
-			//查看ThreadFunction的m_set_ThreadObject删除位置。
-			//所以暂时线程安全,以后有能力优化
+
+			_pThreadObject = (ThreadObject*)_THREAD_OBJECT;
 
 			bool _ThreadMessageMode = false;
 
@@ -410,17 +401,23 @@ namespace Magic
 			if (_Synch && _pSendThreadObject != m_S_T_pThreadObject) {
 				_pSendThreadObject = m_S_T_pThreadObject;
 			}
+			try
+			{
+				Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
+				_ThreadMessageMode = Magic_InterlockedExchangeAdd((long*)&_pThreadObject->m_ThreadMessageMode, 0) == THREAD_MESSAGE_WAIT;
+				_pThreadObject->p_queue_Message->emplace_back(_MessageType, _Message, key, messageTransfer, _CallBack, _pSendThreadObject, _ThreadMessageMode);
+				Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
+				if (_ThreadMessageMode)
+					Magic_Thread_SEM_Post(_pThreadObject->m_Queue_SEM);
 
-			Magic_Thread_Mutex_Lock(&_pThreadObject->m_MessageMutex);
-			_ThreadMessageMode = Magic_InterlockedExchangeAdd((long*)&_pThreadObject->m_ThreadMessageMode, 0) == THREAD_MESSAGE_WAIT;
-			_pThreadObject->p_queue_Message->push_back(Message(_MessageType, _Message, key, messageTransfer, _CallBack, _pSendThreadObject, _ThreadMessageMode));
-			Magic_Thread_Mutex_unLock(&_pThreadObject->m_MessageMutex);
-			if (_ThreadMessageMode)
-				Magic_Thread_SEM_Post(_pThreadObject->m_Queue_SEM);
+				//同步模式，等待其他线程处理完后再返回
+				if (_pSendThreadObject)
+					Magic_Thread_SEM_Wait(_pSendThreadObject->m_Synch_SEM);
+			}catch (const std::exception&)
+			{
+				return false;
+			}
 
-			//同步模式，等待其他线程处理完后再返回
-			if (_pSendThreadObject)
-				Magic_Thread_SEM_Wait(_pSendThreadObject->m_Synch_SEM);
 
 			return true;
 		}
