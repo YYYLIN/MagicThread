@@ -515,10 +515,45 @@ namespace Magic
 		*/
 		DLL_MAGIC_THREAD_OUTPUT_INPUT void GetTHREAD_POOL_OBJECT_Name(THREAD_POOL_OBJECT _THREAD_POOL_OBJECT, char* _name, int _size);
 
+		template<typename T1>
+		MESSAGE_TRANSFER_FUNC SetMessageParam(T1 arg1) {
+			return [arg1](void* p1, void* p2, void* p3, void* p4, void* p5) {
+				if (p1 != nullptr) {
+					*(T1*)p1 = arg1;
+				}
+			};
+		}
+
+		template<typename T1, typename T2>
+		MESSAGE_TRANSFER_FUNC SetMessageParam(T1 arg1, T2 arg2) {
+			return [arg1, arg2](void* p1, void* p2, void* p3, void* p4, void* p5) {
+				if (p1 != nullptr) {
+					*(T1*)p1 = arg1;
+				}
+				if (p2 != nullptr) {
+					*(T2*)p2 = arg2;
+				}
+			};
+		}
+
+		template<typename T1, typename T2, typename T3>
+		MESSAGE_TRANSFER_FUNC SetMessageParam(T1 arg1, T2 arg2, T3 arg3) {
+			return [arg1, arg2, arg3](void* p1, void* p2, void* p3, void* p4, void* p5) {
+				if (p1 != nullptr) {
+					*(T1*)p1 = arg1;
+				}
+				if (p2 != nullptr) {
+					*(T2*)p2 = arg2;
+				}
+				if (p3 != nullptr) {
+					*(T3*)p3 = arg3;
+				}
+			};
+		}
 
 		template<typename T1, typename T2, typename T3, typename T4>
 		MESSAGE_TRANSFER_FUNC SetMessageParam(T1 arg1, T2 arg2, T3 arg3, T4 arg4) {
-			return [arg1, arg2, arg3, arg4](void* p1, void* p2, void* p3, void* p4) {
+			return [arg1, arg2, arg3, arg4](void* p1, void* p2, void* p3, void* p4, void* p5) {
 				if (p1 != nullptr) {
 					*(T1*)p1 = arg1;
 				}
@@ -530,6 +565,27 @@ namespace Magic
 				}
 				if (p4 != nullptr) {
 					*(T4*)p4 = arg4;
+				}
+			};
+		}
+
+		template<typename T1, typename T2, typename T3, typename T4, typename T5>
+		MESSAGE_TRANSFER_FUNC SetMessageParam(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5) {
+			return [arg1, arg2, arg3, arg4, arg5](void* p1, void* p2, void* p3, void* p4, void* p5) {
+				if (p1 != nullptr) {
+					*(T1*)p1 = arg1;
+				}
+				if (p2 != nullptr) {
+					*(T2*)p2 = arg2;
+				}
+				if (p3 != nullptr) {
+					*(T3*)p3 = arg3;
+				}
+				if (p4 != nullptr) {
+					*(T4*)p4 = arg4;
+				}
+				if (p5 != nullptr) {
+					*(T5*)p5 = arg5;
 				}
 			};
 		}

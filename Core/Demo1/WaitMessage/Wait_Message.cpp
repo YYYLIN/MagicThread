@@ -24,7 +24,7 @@ void USBHIDThread() {
 
 		// 底层处理完成，发送回复消息到HID库
 		std::vector<unsigned char> data = { 33,44,55,66 };
-		SendMessageTo("HID", std::string("ReplyFlash_") + a.device, SetMessageParam(data, std::string("Test Mssage OK"), MAGIC_NULL_PARAM, MAGIC_NULL_PARAM));
+		SendMessageTo("HID", std::string("ReplyFlash_") + a.device, SetMessageParam(data, std::string("Test Mssage OK")));
 	}
 }
 
@@ -53,7 +53,7 @@ void TestWaitMessage() {
 	WAIT_MESSAGE waitMessage;
 	// 监听指定设备的ReplyFlash消息
 	MonitorThreadMessage("HID", std::string("ReplyFlash_") + deveic, [&replyData, &replyMsg](const std::string& key, const MESSAGE_TRANSFER_FUNC& message) {
-		message(&replyData, &replyMsg, 0, 0);
+		message(&replyData, &replyMsg, 0, 0, 0);
 
 		// 返回0，此函数只监听调用一次
 		return 0;
