@@ -32,6 +32,10 @@ namespace Magic
 {
 	namespace Management
 	{
+		GlobalMutex::GlobalMutex() {
+			Magic_Thread_Mutex_Init(&m_Mutex);
+		}
+
 		Message::Message() :m_MessageType(0), m_Message(0), m_pThreadObject(0), messageMode(0)
 		{
 
@@ -77,6 +81,8 @@ namespace Magic
 				SystemThread::Instance()->SendMessageTo(_Message.m_MessageType, _Message.m_Message, _Message.m_CallBack);
 		}
 
+		GlobalMutex SystemThread::m_S_GlobalMutex;
+
 		S_THREAD ThreadObject* SystemThread::m_S_T_pThreadObject = 0;
 		S_THREAD THREAD_OBJECT SystemThread::m_S_T_ThreadObjectId = 0;
 		S_THREAD ThreadPoolObject* SystemThread::m_S_T_pThreadPoolObject = 0;
@@ -92,7 +98,6 @@ namespace Magic
 		{
 			m_S_pSystemThread = 0;
 			Magic_Thread_Mutex_Destroy(&m_MutexPoolObject);
-			Magic_Thread_Mutex_Destroy(&m_Mutex);
 		}
 
 		SystemThread* SystemThread::Instance()
@@ -102,7 +107,7 @@ namespace Magic
 
 		bool SystemThread::Initialize(ThreadMessageMode threadmessagemode)
 		{
-			Magic_Thread_Mutex_Init(&m_Mutex);
+			m_Mutex = m_S_GlobalMutex.m_Mutex;
 			Magic_Thread_Mutex_Init(&m_MutexPoolObject);
 
 			m_S_T_ThreadObjectId = Create(MAGIC_MAIN_THREAD_NAME, THREAD_LOOP_RUN, threadmessagemode, false);

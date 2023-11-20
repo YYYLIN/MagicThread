@@ -124,6 +124,16 @@ namespace Magic
 
 		/*
 		*功能：
+		*	是否已经创建线程管理器
+		*参数：
+		*	空
+		*返回值：
+		*	bool = true 成功 | false 失败
+		*/
+		DLL_MAGIC_THREAD_OUTPUT_INPUT bool IsCreateThreadManagement();
+
+		/*
+		*功能：
 		*	创建线程管理器
 		*参数：
 		*	空

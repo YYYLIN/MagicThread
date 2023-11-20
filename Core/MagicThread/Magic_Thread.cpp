@@ -40,21 +40,35 @@ namespace Magic
 			return SystemThread::Instance()->GetThreadSize();
 		}
 
+		bool IsCreateThreadManagement() {
+			Magic_MUTEX mutex = Magic::Management::SystemThread::getGlobalMutex();
+			Magic_Thread_Mutex_Lock(&mutex);
+			bool result = SystemThread::Instance() != 0;
+			Magic_Thread_Mutex_unLock(&mutex);
+
+			return result;
+		}
+
 		bool CreateThreadManagement(ThreadMessageMode threadmessagemode)
 		{
+			Magic_MUTEX mutex = Magic::Management::SystemThread::getGlobalMutex();
+			Magic_Thread_Mutex_Lock(&mutex);
 			if (!SystemThread::Instance())
 			{
 				//创建线程管理系统
 				Magic::Management::SystemThread* _pSystemThread = 0;
 				_pSystemThread = new Magic::Management::SystemThread;
 				bool result = _pSystemThread->Initialize(threadmessagemode);
+				Magic_Thread_Mutex_unLock(&mutex);
 				if (!result)
 					return 0;
 
 				return true;
 			}
-			else
+			else {
+				Magic_Thread_Mutex_unLock(&mutex);
 				return false;
+			}
 		}
 
 		void ShutdownThreadManagement()

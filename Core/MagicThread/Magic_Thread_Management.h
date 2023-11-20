@@ -102,6 +102,12 @@ namespace Magic
 			ThreadObject(ThreadTypeMode _ThreadTypeMode, ThreadRunState _ThreadRunState, const std::string& _name, ThreadMessageMode _ThreadMessageMode);
 		};
 
+		class GlobalMutex {
+		public:
+			GlobalMutex();
+			Magic_MUTEX m_Mutex;
+		};
+
 		class ThreadPoolObject
 		{
 		public:
@@ -125,6 +131,8 @@ namespace Magic
 			~SystemThread();
 
 			static SystemThread* Instance();
+
+			static Magic_MUTEX getGlobalMutex() { return m_S_GlobalMutex.m_Mutex; }
 
 			bool Initialize(ThreadMessageMode threadmessagemode);
 
@@ -195,8 +203,11 @@ namespace Magic
 
 			MAP_SRTING_THREADPOOLOBJECT m_map_Srting_ThreadPoolObject;
 
-			Magic_MUTEX m_Mutex, m_MutexPoolObject;
 
+			Magic_MUTEX m_MutexPoolObject;
+			Magic_MUTEX m_Mutex;
+
+			static GlobalMutex m_S_GlobalMutex;
 			static S_THREAD ThreadObject* m_S_T_pThreadObject;
 			static S_THREAD THREAD_OBJECT m_S_T_ThreadObjectId;
 			static S_THREAD ThreadPoolObject* m_S_T_pThreadPoolObject;
